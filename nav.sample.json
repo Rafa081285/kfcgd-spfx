@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "site": {
+    "serverRelativeUrl": "/sites/KFCGD"
+  },
+  "results": {
+    "page": "/sites/KFCGD/SitePages/resultados.aspx",
+    "nodeIdQueryParam": "nodeId"
+  },
+  "nodes": [
+    {
+      "id": "po",
+      "label": "PO Generales",
+      "filters": [
+        { "field": "ContentType", "op": "eq", "value": "GD \u2013 PO" }
+      ],
+      "children": [
+        {
+          "id": "po-planta-a",
+          "label": "Planta A",
+          "filters": [
+            { "field": "ContentType", "op": "eq", "value": "GD \u2013 PO" },
+            { "field": "GD_PlantasAplicables", "op": "containsTerm", "value": "Planta A" }
+          ],
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "instructivos",
+      "label": "Instructivos",
+      "filters": [
+        { "field": "ContentType", "op": "eq", "value": "GD \u2013 Instructivo" }
+      ],
+      "children": []
+    },
+    {
+      "id": "formatos",
+      "label": "Formatos",
+      "filters": [
+        { "field": "ContentType", "op": "in", "value": ["GD \u2013 Formato", "GD \u2013 Registro"] }
+      ],
+      "children": []
+    }
+  ]
+}

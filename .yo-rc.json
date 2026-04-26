@@ -1,0 +1,15 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "version": "1.18.2",
+    "libraryName": "kfcgd-spfx",
+    "libraryId": "d1e1c7e0-1234-4567-abcd-ef1234567890",
+    "environment": "spo",
+    "packageManager": "npm",
+    "solutionName": "kfcgd-spfx",
+    "solutionShortDescription": "KFC Gestor Documental SPFx Solution",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "webpart",
+    "framework": "react"
+  }
+}

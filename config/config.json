@@ -1,0 +1,27 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/core-build/config/v1/config.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "gd-navigation-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/gdNavigation/GdNavigationWebPart.js",
+          "manifest": "./src/webparts/gdNavigation/GdNavigationWebPart.manifest.json"
+        }
+      ]
+    },
+    "gd-results-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/gdResults/GdResultsWebPart.js",
+          "manifest": "./src/webparts/gdResults/GdResultsWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "GdNavigationWebPartStrings": "lib/webparts/gdNavigation/loc/{locale}.js",
+    "GdResultsWebPartStrings": "lib/webparts/gdResults/loc/{locale}.js"
+  }
+}
