@@ -186,7 +186,59 @@ Deben incluir:
 
 ---
 
-## 7) Criterios de contraste (para otras herramientas)
+## 8) Tipo documental: Documentos relacionados
+
+> Content Type: `GD – Relacionado` (hereda de `Document`).  
+> Scripts de provisioning: [`provisioning/related_documents/`](provisioning/related_documents/README.md).
+
+### 8.1 Columnas nuevas (específicas de este tipo documental)
+
+> Creadas por `provisioning/related_documents/01-rd-sitecolumns.ps1` y `02-rd-taxonomyfield.ps1`.
+
+| Columna (visible) | InternalName | Tipo | Multi | Observaciones |
+|---|---|---|---|---|
+| Nomenclatura | `GD_Nomenclatura` | Texto | No | Sigla/nomenclatura del documento |
+| Nombre de documento homologado | `GD_NombreDocumentoHomologado` | Texto | No | Nombre del doc. homologado de referencia |
+| Visualización documento | `GD_VisualizacionDocumento` | URL (Hyperlink) | No | Enlace directo al archivo |
+| Documento general relacionado | `GD_DocumentoGeneral` | URL (Hyperlink) | No | Enlace al PO/IT padre |
+| Fecha de emisión | `GD_FechaEmision` | Fecha (DateOnly) | No | Fecha de emisión del documento |
+| Línea de proceso | `GD_LineaProceso` | Taxonomía (MM) | **Sí** | TermSet: `GD - Lineas de Proceso` |
+
+### 8.2 Columnas reutilizadas de Documentos generales
+
+Los siguientes campos ya existen (secciones 3 y 4) y se enlazan al CT `GD – Relacionado`:
+
+`GD_Codigo`, `GD_NombreProcedimiento`, `GD_Aplicabilidad`, `GD_Version`,
+`GD_VigenciaHasta`, `GD_FechaActualizacion`, `GD_FechaCaducidad`,
+`GD_RespElaboracionActualizacion`, `GD_Estatus`, `GD_AprobadoPorYUM`,
+`GD_FechaVencimientoYUM`, `GD_PlantasAplicables`
+
+### 8.3 Term Set nuevo: GD - Lineas de Proceso
+
+**Term Group:** `GestorDocumentalGD`  
+**Term Set:** `GD - Lineas de Proceso` (Closed)
+
+Términos semilla: Fileteado, Corte, Cocción, Marinado, Empaque, Congelación, Distribución, Control de Calidad, Limpieza y Desinfección, Mantenimiento.
+
+### 8.4 Content Type
+
+| Propiedad | Valor |
+|---|---|
+| Nombre | `GD – Relacionado` |
+| Grupo | `GD Content Types` |
+| Hereda de | `Document` |
+| Biblioteca | `Gestor Documental` (default, parametrizable) |
+
+---
+
+## 9) Criterios de contraste (para otras herramientas)
+
+Al comparar contra otras herramientas, agregar a la validación de la sección 7:
+
+6. Tipo documental `GD – Relacionado`:
+   - Campos nuevos: `GD_Nomenclatura`, `GD_NombreDocumentoHomologado`, `GD_VisualizacionDocumento`, `GD_DocumentoGeneral`, `GD_FechaEmision`, `GD_LineaProceso`
+   - Term Set `GD - Lineas de Proceso` (Closed, multi)
+   - CT `GD – Relacionado` hereda de `Document` y enlaza los 18 campos definidos
 
 Al comparar contra otras herramientas (p. ej. plantillas provisioning, IaC o scripts alternos), validar:
 

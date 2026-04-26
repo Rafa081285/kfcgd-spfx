@@ -163,3 +163,70 @@ Cada script debe poder ejecutarse N veces sin romper:
 - Existe la biblioteca (título coincide con `-LibraryTitle`)
 - Content Types habilitados
 - CTs `GD – PO` y `GD – IT` están presentes
+
+---
+
+## 7) Módulo adicional: Documentos relacionados (`related_documents/`)
+
+Este módulo aprovisiona el tipo documental **"Documentos relacionados"** (`GD – Relacionado`).  
+Debe ejecutarse **después** del provisioning base (secciones 1–5 anteriores).
+
+> Documentación completa: [`related_documents/README.md`](./related_documents/README.md)  
+> Especificación del tipo documental: [`related_documents/DOCUMENTOS-RELACIONADOS.md`](./related_documents/DOCUMENTOS-RELACIONADOS.md)
+
+### 7.1 Objetivo
+
+Aprovisionar:
+1. Nuevas **site columns** exclusivas: `GD_Nomenclatura`, `GD_NombreDocumentoHomologado`, `GD_VisualizacionDocumento`, `GD_DocumentoGeneral`, `GD_FechaEmision`.
+2. Nuevo **Term Set** `GD - Lineas de Proceso` (Closed) + campo de taxonomía `GD_LineaProceso` (multi-valor).
+3. **Content Type** `GD – Relacionado` heredando de `Document`, con los 18 campos requeridos (nuevos + reutilizados).
+4. (Opcional) Agregar CT a la biblioteca.
+
+### 7.2 Orden de ejecución completo (base + relacionados)
+
+```powershell
+$tenant = "https://contoso.sharepoint.com"
+
+# ── Provisioning base ────────────────────────────────────────────────────────
+.\01-termstore.ps1      -TenantUrl $tenant
+.\02-sitecolumns.ps1    -TenantUrl $tenant
+.\05-taxonomyfields.ps1 -TenantUrl $tenant
+.\03-contenttypes.ps1   -TenantUrl $tenant
+.\04-library.ps1        -TenantUrl $tenant -LibraryTitle "Gestor Documental"
+
+# ── Provisioning Documentos relacionados ─────────────────────────────────────
+cd related_documents
+.\01-rd-sitecolumns.ps1  -TenantUrl $tenant
+.\02-rd-taxonomyfield.ps1 -TenantUrl $tenant
+.\03-rd-contenttype.ps1  -TenantUrl $tenant
+.\04-rd-library.ps1      -TenantUrl $tenant -LibraryTitle "Gestor Documental"  # opcional
+```
+
+### 7.3 Nuevas reglas funcionales (Documentos relacionados)
+
+- El campo `GD_DocumentoGeneral` (URL/Hyperlink) permite enlazar el documento a su Documento general (PO/IT) padre.
+- El campo `GD_LineaProceso` es **multi-valor** y usa el Term Set `GD - Lineas de Proceso`.
+- El Term Set `GD - Lineas de Proceso` debe crearse como **Closed**.
+- Los campos reutilizados **no se recrean**; el script `01-rd-sitecolumns.ps1` solo los verifica.
+
+### 7.4 Validación post-provisioning (Documentos relacionados)
+
+#### Term Store
+- Existe Term Set `GD - Lineas de Proceso` en `GestorDocumentalGD` (Closed)
+- Existen los términos semilla (Fileteado, Corte, Cocción, etc.)
+
+#### Site Columns nuevas
+- `GD_Nomenclatura` — Texto
+- `GD_NombreDocumentoHomologado` — Texto
+- `GD_VisualizacionDocumento` — URL
+- `GD_DocumentoGeneral` — URL
+- `GD_FechaEmision` — DateTime (DateOnly)
+- `GD_LineaProceso` — Taxonomía, multi-valor
+
+#### Content Type
+- Existe `GD – Relacionado` en el sitio
+- Hereda de `Document`
+- Están enlazados los 18 campos definidos
+
+#### Biblioteca (si se ejecutó paso opcional)
+- CT `GD – Relacionado` visible en la biblioteca destino

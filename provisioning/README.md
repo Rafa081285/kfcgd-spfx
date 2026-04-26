@@ -73,6 +73,28 @@ Install-Module PnP.PowerShell -Scope CurrentUser
   - Enables content types
   - Adds `GD – PO` and `GD – IT`
 
+## Related documents provisioning
+
+An additional provisioning module for the **"Documentos relacionados"** content type is available in:
+
+```
+provisioning/related_documents/
+```
+
+It must be run **after** the base provisioning above. See [`related_documents/README.md`](./related_documents/README.md) for details.
+
+Quick execution order (after base provisioning):
+
+```powershell
+cd related_documents
+.\01-rd-sitecolumns.ps1  -TenantUrl "https://contoso.sharepoint.com"
+.\02-rd-taxonomyfield.ps1 -TenantUrl "https://contoso.sharepoint.com"
+.\03-rd-contenttype.ps1  -TenantUrl "https://contoso.sharepoint.com"
+.\04-rd-library.ps1      -TenantUrl "https://contoso.sharepoint.com"   # optional
+```
+
+---
+
 ## Notes
 
 - Scripts are intended to be idempotent (re-running should skip already existing resources).
