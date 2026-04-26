@@ -1,53 +1,74 @@
-<#
-.SYNOPSIS
-    This script provisions content types in a SharePoint site.
-.DESCRIPTION
-    It ensures that the specified content types exist and attaches necessary fields.
-.PARAMETER TenantUrl
-    The URL of the SharePoint tenant.
-.PARAMETER SiteRelativeUrl
-    The relative URL of the SharePoint site. Default is '/sites/KFCGD'.
-#>
-param (
-    [Parameter(Mandatory=$true)]
-    [string]$TenantUrl,
-    [string]$SiteRelativeUrl = '/sites/KFCGD'
+param(
+  [Parameter(Mandatory=$true)][string]$TenantUrl,
+  [string]$SiteRelativeUrl = '/sites/KFCGD'
 )
 
-# Connect to SharePoint
-Connect-PnPOnline -Url $TenantUrl -UseWebLogin
+$siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
+Connect-PnPOnline -Url $siteUrl -Interactive
 
-# Function to ensure content type exists
-function Ensure-ContentTypeExists {
-    param (
-        [string]$ContentTypeName,
-        [string]$ContentTypeID,
-        [string]$GroupName
-    )
+$ctGroup = 'GD Content Types'
 
-    $contentType = Get-PnPContentType -Identity $ContentTypeID -ErrorAction SilentlyContinue
-    if (-not $contentType) {
-        $contentType = New-PnPContentType -Name $ContentTypeName -Id $ContentTypeID -Group $GroupName -FieldLinks @() -Description "Content Type for $ContentTypeName"
-    }
-    return $contentType
+function Ensure-ContentType {
+  param(
+    [Parameter(Mandatory=$true)][string]$Name,
+    [Parameter(Mandatory=$true)][string]$ParentContentTypeName = 'Document'
+  )
+
+  $existing = Get-PnPContentType -Identity $Name -ErrorAction SilentlyContinue
+  if ($existing) { return $existing }
+
+  $parent = Get-PnPContentType -Identity $ParentContentTypeName
+  if (-not $parent) { throw "Parent content type '$ParentContentTypeName' not found." }
+
+  return New-PnPContentType -Name $Name -ParentContentType $parent -Group $ctGroup -Description "Gestor Documental - $Name"
 }
 
-# Ensure the GD – PO and GD – IT content types exist
-$gdPoContentType = Ensure-ContentTypeExists -ContentTypeName 'GD – PO' -ContentTypeID '0x010100000000000040B008C6F83247C3A5611F4F63C67BFE' -GroupName 'GD Content Types'
-$gdItContentType = Ensure-ContentTypeExists -ContentTypeName 'GD – IT' -ContentTypeID '0x010100000000000051A0003C7B9D148EB9735386747416F3' -GroupName 'GD Content Types'
+$ctPO = Ensure-ContentType -Name 'GD – PO'
+$ctIT = Ensure-ContentType -Name 'GD – IT'
 
-# Attach base fields from 02-sitecolumns
-$currentFields = Get-PnPField -List $SiteRelativeUrl + '/02-sitecolumns'
-foreach ($field in $currentFields) {
-    Add-PnPFieldToContentType -Field $field -ContentType $gdPoContentType
-    Add-PnPFieldToContentType -Field $field -ContentType $gdItContentType
+# Fields to link (base + taxonomy). All Required = No (default).
+$fieldInternalNames = @(
+  'GD_Codigo',
+  'GD_NombreProcedimiento',
+  'GD_ProductoLabels',
+  'GD_Aplicabilidad',
+  'GD_Estatus',
+  'GD_TipoProceso',
+  'GD_Version',
+  'GD_FechaDivulgacion',
+  'GD_FechaActualizacion',
+  'GD_MotivoActualizacion',
+  'GD_VigenciaHasta',
+  'GD_FechaCaducidad',
+  'GD_FechaHomologacion',
+  'GD_AprobadoPorYUM',
+  'GD_FechaVencimientoYUM',
+  'GD_ImpactoContinuidad',
+  'GD_ResponsablePrincipal',
+  'GD_RespElaboracionActualizacion',
+  'GD_RespRevision',
+  'GD_RespAprobacion',
+
+  'GD_Categoria',
+  'GD_Alcance',
+  'GD_Confidencialidad',
+  'GD_PlantasAplicables',
+  'GD_HomologacionPlanta',
+  'GD_Producto',
+  'GD_DepartamentoResponsable',
+  'GD_CargoLiderPO',
+  'GD_AmbitoPrograma'
+)
+
+foreach ($fname in $fieldInternalNames) {
+  $f = Get-PnPField -Identity $fname -ErrorAction SilentlyContinue
+  if (-not $f) {
+    Write-Warning "Field '$fname' not found. Skipping linking to content types. (Run 02 + 05 first)"
+    continue
+  }
+
+  Add-PnPFieldToContentType -Field $f -ContentType $ctPO -ErrorAction SilentlyContinue | Out-Null
+  Add-PnPFieldToContentType -Field $f -ContentType $ctIT -ErrorAction SilentlyContinue | Out-Null
 }
 
-# Attach taxonomy fields from 05
-$taxonomyFields = Get-PnPField -List $SiteRelativeUrl + '/05'
-foreach ($taxonomyField in $taxonomyFields) {
-    if ($taxonomyField.InternalName) {
-        Add-PnPFieldToContentType -Field $taxonomyField -ContentType $gdPoContentType
-        Add-PnPFieldToContentType -Field $taxonomyField -ContentType $gdItContentType
-    }
-}
+Write-Host 'Done.'
