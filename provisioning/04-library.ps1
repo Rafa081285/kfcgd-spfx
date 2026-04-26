@@ -1,54 +1,50 @@
 <#
 .SYNOPSIS
-  Script to provision a document library in SharePoint using PnP.PowerShell
+  Crea/asegura la biblioteca y configura Content Types.
 .DESCRIPTION
-  This script checks if the document library exists and provisions it if not. It also configures content types as specified.
-.PARAMETER TenantUrl
-  The URL of the tenant.
-.PARAMETER SiteRelativeUrl
-  The relative URL of the site. Default is '/sites/KFCGD'.
-.PARAMETER LibraryTitle
-  The title of the document library. Default is 'Gestor Documental'.
+  - Conecta con -Interactive
+  - Biblioteca parametrizada con -LibraryTitle
+  - Habilita Content Types
+  - Agrega CTs "GD – PO" y "GD – IT"
+  - NO elimina el CT "Document" por defecto (recomendado)
 #>
+
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$TenantUrl,
-    [string]$SiteRelativeUrl = '/sites/KFCGD',
-    [string]$LibraryTitle = 'Gestor Documental'
+  [Parameter(Mandatory = $true)]
+  [string]$TenantUrl,
+
+  [string]$SiteRelativeUrl = '/sites/KFCGD',
+
+  [string]$LibraryTitle = 'Gestor Documental'
 )
 
-# Connect to SharePoint
-Connect-PnPOnline -Url $TenantUrl -UseWebLogin
+$siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
+Connect-PnPOnline -Url $siteUrl -Interactive
 
-# Check if the document library exists
-$libraryExists = Get-PnPList -Identity $LibraryTitle -ErrorAction SilentlyContinue
-
-if (-not $libraryExists) {
-    # Provision the document library
-    New-PnPList -Title $LibraryTitle -Template DocumentLibrary
-    Write-Host "Document library '$LibraryTitle' created."
+# Ensure library
+$list = Get-PnPList -Identity $LibraryTitle -ErrorAction SilentlyContinue
+if (-not $list) {
+  New-PnPList -Title $LibraryTitle -Template DocumentLibrary | Out-Null
+  Write-Host "Library created: $LibraryTitle"
 } else {
-    Write-Host "Document library '$LibraryTitle' already exists."
+  Write-Host "Library already exists: $LibraryTitle"
 }
 
-# Enable content types
-Set-PnPList -Identity $LibraryTitle -EnableContentTypes $true
+# Enable Content Types on the library
+Set-PnPList -Identity $LibraryTitle -ContentTypesEnabled:$true | Out-Null
 
-# Add content types
-Add-PnPContentTypeToList -List $LibraryTitle -ContentType "GD – PO"
-Add-PnPContentTypeToList -List $LibraryTitle -ContentType "GD – IT"
+# Ensure CTs exist at site level (created by 03)
+$ctNames = @('GD – PO', 'GD – IT')
+foreach ($ctName in $ctNames) {
+  $ct = Get-PnPContentType -Identity $ctName -ErrorAction SilentlyContinue
+  if (-not $ct) {
+    Write-Warning "Content Type '$ctName' no existe en el sitio. Ejecuta 03-contenttypes.ps1 antes. (Se omite por ahora)"
+    continue
+  }
 
-# Remove default document content type if safe
-$defaultContentType = Get-PnPContentType -List $LibraryTitle | Where-Object { $_.Name -eq 'Document' }
-if ($defaultContentType -and ($defaultContentType.Id -ne $null)) {
-    # Check if it is safe to remove
-    $safeToRemove = $true  # Insert logic to determine if safe to remove
-    if ($safeToRemove) {
-        Remove-PnPContentTypeFromList -List $LibraryTitle -ContentType $defaultContentType
-        Write-Host "Default content type 'Document' removed."
-    } else {
-        Write-Host "Safe to remove check failed. Default content type 'Document' not removed."
-    }
-} else {
-    Write-Host "Default content type 'Document' not found."
+  # Add to library (idempotente)
+  Add-PnPContentTypeToList -List $LibraryTitle -ContentType $ctName -ErrorAction SilentlyContinue | Out-Null
+  Write-Host "Ensured CT in library: $ctName"
 }
+
+Write-Host "OK. Library ready: $LibraryTitle"
