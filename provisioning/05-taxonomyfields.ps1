@@ -1,66 +1,81 @@
 <#
 .SYNOPSIS
-   This script creates managed metadata site columns in SharePoint Online using PnP PowerShell.
+  Crea columnas de taxonomía (Managed Metadata) en el sitio.
 .DESCRIPTION
-   The script connects to SharePoint Online interactively and creates taxonomy fields based on the specified term sets.
-.PARAMETER TenantUrl
-   The URL of the tenant where SharePoint Online is hosted.
-.PARAMETER SiteRelativeUrl
-   The relative URL of the SharePoint site. Defaults to '/sites/KFCGD'.
-.PARAMETER TermGroupName
-   The name of the term group where term sets are located. Defaults to 'GestorDocumentalGD'.
+  - Conecta con -Interactive
+  - Resuelve Term Group + Term Set
+  - Crea campos MM idempotentes
+  - Multi-value donde corresponde (GD_Producto, GD_PlantasAplicables, GD_HomologacionPlanta)
+.NOTES
+  Ejecutar después de 01-termstore.ps1 y antes de 03-contenttypes.ps1
 #>
-param (
-    [Parameter(Mandatory=$true)]
-    [string]$TenantUrl,
-    [string]$SiteRelativeUrl = '/sites/KFCGD',
-    [string]$TermGroupName = 'GestorDocumentalGD'
+
+param(
+  [Parameter(Mandatory = $true)]
+  [string]$TenantUrl,
+
+  [string]$SiteRelativeUrl = '/sites/KFCGD',
+
+  [string]$TermGroupName = 'GestorDocumentalGD'
 )
 
-# Connect to SharePoint Online interactively
-Connect-PnPOnline -Url $TenantUrl -UseWebLogin
+$siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
+Connect-PnPOnline -Url $siteUrl -Interactive
 
-# Function to create a taxonomy field
-function CreateTaxonomyField {
-    param (
-        [string]$FieldName,
-        [string]$TermSetName,
-        [bool]$IsMultiChoice = $false
-    )
+$group = 'GD Columns'
 
-    $TermSet = Get-PnPTermSet -Group $TermGroupName -TermSet $TermSetName
-    if ($null -eq $TermSet) {
-        Write-Host "Term Set '$TermSetName' not found in group '$TermGroupName'. Skipping..."
-        return
-    }
+function Get-TermSetByName {
+  param(
+    [Parameter(Mandatory=$true)][string]$TermGroupName,
+    [Parameter(Mandatory=$true)][string]$TermSetName
+  )
 
-    # Add the taxonomy field
-    if ($IsMultiChoice) {
-        Add-PnPTaxonomyField -FieldName $FieldName -Group 'GD Columns' -TermSet $TermSet.Id -SspId $TermSet.SspId -AllowMultipleValues $true -Required $false
-    } else {
-        Add-PnPTaxonomyField -FieldName $FieldName -Group 'GD Columns' -TermSet $TermSet.Id -SspId $TermSet.SspId -Required $false
-    }
+  # En PnP.PowerShell, esta forma es la más consistente cuando ya conoces el nombre del term set y el grupo
+  $ts = Get-PnPTermSet -Identity $TermSetName -TermGroup $TermGroupName -ErrorAction SilentlyContinue
+  if (-not $ts) {
+    throw "No se encontró el TermSet '$TermSetName' en el grupo '$TermGroupName'."
+  }
+  return $ts
 }
 
-# Create taxonomy fields
-CreateTaxonomyField -FieldName 'GD_Categoria' -TermSetName 'GD - Categoria'
-CreateTaxonomyField -FieldName 'GD_Alcance' -TermSetName 'GD - Alcance'
-CreateTaxonomyField -FieldName 'GD_Confidencialidad' -TermSetName 'GD - Confidencialidad'
-CreateTaxonomyField -FieldName 'GD_PlantasAplicables' -TermSetName 'GD - Plantas y Centros' -IsMultiChoice $true
-CreateTaxonomyField -FieldName 'GD_HomologacionPlanta' -TermSetName 'GD - Plantas y Centros' -IsMultiChoice $true
-CreateTaxonomyField -FieldName 'GD_Producto' -TermSetName 'GD - Producto - Familia - SKU' -IsMultiChoice $true
-CreateTaxonomyField -FieldName 'GD_DepartamentoResponsable' -TermSetName 'GD - Areas - Departamentos'
-CreateTaxonomyField -FieldName 'GD_CargoLiderPO' -TermSetName 'GD - Cargos - Roles'
-CreateTaxonomyField -FieldName 'GD_AmbitoPrograma' -TermSetName 'GD - Ambito - Programa'
+function Ensure-TaxonomyField {
+  param(
+    [Parameter(Mandatory=$true)][string]$InternalName,
+    [Parameter(Mandatory=$true)][string]$DisplayName,
+    [Parameter(Mandatory=$true)][string]$TermSetName,
+    [switch]$Multi
+  )
 
-# Attach fields to content types if they exist
-$contentTypes = Get-PnPContentType
-foreach ($contentType in $contentTypes) {
-    if ($contentType.Name -eq 'GD – PO' -or $contentType.Name -eq 'GD – IT') {
-        foreach ($fieldName in @('GD_Categoria', 'GD_Alcance', 'GD_Confidencialidad', 'GD_PlantasAplicables', 'GD_HomologacionPlanta', 'GD_Producto', 'GD_DepartamentoResponsable', 'GD_CargoLiderPO', 'GD_AmbitoPrograma')) {
-            if (Get-PnPField -Identity $fieldName -ErrorAction SilentlyContinue) {
-                Add-PnPFieldToContentType -Field $fieldName -ContentType $contentType -ErrorAction SilentlyContinue;
-            }
-        }
-    }
+  if (Get-PnPField -Identity $InternalName -ErrorAction SilentlyContinue) {
+    Write-Host "Field exists: $InternalName"
+    return
+  }
+
+  # Validación: que el term set exista
+  $null = Get-TermSetByName -TermGroupName $TermGroupName -TermSetName $TermSetName
+
+  # Importante: Dependiendo de tu versión de PnP.PowerShell, la firma de Add-PnPTaxonomyField puede variar.
+  # Esta variante (con TermSetPath + MultiValue) es la que suele funcionar en versiones modernas.
+  Add-PnPTaxonomyField `
+    -DisplayName $DisplayName `
+    -InternalName $InternalName `
+    -Group $group `
+    -TermSetPath "$TermGroupName|$TermSetName" `
+    -MultiValue:$($Multi.IsPresent) `
+    -AddToDefaultView:$false | Out-Null
+
+  Write-Host "Created taxonomy field: $InternalName (TermSet: $TermSetName)"
 }
+
+# Campos MM
+Ensure-TaxonomyField -InternalName 'GD_Categoria'               -DisplayName 'Categoría'                -TermSetName 'GD - Categoria'
+Ensure-TaxonomyField -InternalName 'GD_Alcance'                 -DisplayName 'Alcance'                  -TermSetName 'GD - Alcance'
+Ensure-TaxonomyField -InternalName 'GD_Confidencialidad'        -DisplayName 'Confidencialidad'         -TermSetName 'GD - Confidencialidad'
+Ensure-TaxonomyField -InternalName 'GD_PlantasAplicables'       -DisplayName 'Plantas aplicables'       -TermSetName 'GD - Plantas y Centros' -Multi
+Ensure-TaxonomyField -InternalName 'GD_HomologacionPlanta'      -DisplayName 'Homologación planta'      -TermSetName 'GD - Plantas y Centros' -Multi
+Ensure-TaxonomyField -InternalName 'GD_Producto'                -DisplayName 'Producto'                 -TermSetName 'GD - Producto - Familia - SKU' -Multi
+Ensure-TaxonomyField -InternalName 'GD_DepartamentoResponsable' -DisplayName 'Departamento responsable' -TermSetName 'GD - Areas - Departamentos'
+Ensure-TaxonomyField -InternalName 'GD_CargoLiderPO'            -DisplayName 'Cargo líder PO'           -TermSetName 'GD - Cargos - Roles'
+Ensure-TaxonomyField -InternalName 'GD_AmbitoPrograma'          -DisplayName 'Ámbito/Programa'          -TermSetName 'GD - Ambito - Programa'
+
+Write-Host "OK. Taxonomy fields provisioned."
