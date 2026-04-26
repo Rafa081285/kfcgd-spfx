@@ -44,7 +44,6 @@ if (-not $termSet) {
 
   # Términos semilla (líneas de proceso típicas en planta KFC)
   $seedTerms = @(
-    'Todas',
     'Fileteado',
     'Corte',
     'Cocción',
