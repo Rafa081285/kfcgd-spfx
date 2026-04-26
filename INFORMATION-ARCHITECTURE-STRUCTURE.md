@@ -1,1 +1,205 @@
-KFCGD — Estructura de información (IA) y metadatos — Especificación para revisión/contraste
+# KFCGD — Estructura de información (IA) y metadatos — Especificación para revisión/contraste
+
+Este documento describe la **estructura esperada** (Term Store, metadatos, Content Types y biblioteca) del Gestor Documental, para comparar contra lo implementado con scripts u otras herramientas.
+
+---
+
+## 1) Sitio destino
+
+- SharePoint Online Site:
+  - Default: `/sites/KFCGD`
+- No se usa Content Type Hub (los CTs se crean en el sitio).
+
+---
+
+## 2) Term Store (Taxonomía)
+
+### 2.1 Term Group
+- **Nombre**: `GestorDocumentalGD`
+
+### 2.2 Term Sets (todos *Closed*)
+> Los nombres deben coincidir exactamente para que los campos MM se enlacen correctamente.
+
+1. `GD - Categoria`
+   - Términos semilla:
+     - `Transversales Ecuador (Manufactura)`
+     - `Transversales Ecuador (Administrativos)`
+     - `Regional de Manufactura`
+     - `Franquicias`
+
+2. `GD - Alcance`
+   - Términos semilla:
+     - `Regional`
+     - `Nacional`
+
+3. `GD - Confidencialidad`
+   - Términos semilla:
+     - `Interno`
+     - `Confidencial`
+     - `Confidencial YUM`
+
+4. `GD - Plantas y Centros`
+   - Términos semilla:
+     - `Ecuador`
+
+5. `GD - Producto - Familia - SKU`
+   - Términos semilla:
+     - `Pollos`
+     - `Vegetales`
+     - `Cárnicos`
+     - `Pastelería`
+     - `Cocina`
+     - `Hamburguesas`
+
+6. `GD - Areas - Departamentos`
+   - Términos semilla:
+     - `Calidad`
+     - `Mantenimiento`
+     - `Mantenimiento / Calidad`
+     - `Legal`
+
+7. `GD - Cargos - Roles`
+   - Términos semilla:
+     - `Coordinador de Gestión Documental`
+     - `Jefe de Mantenimiento`
+     - `Supervisora laboratorio`
+
+8. `GD - Ambito - Programa`
+   - Términos semilla:
+     - `KFC YUM`
+     - `KFC REGIONAL`
+     - `KFC AUDITORIAS YUM`
+     - `ECUADOR: MARCAS NACIONALES`
+
+---
+
+## 3) Site Columns (campos base)
+
+> Convención: InternalName = nombre técnico con prefijo `GD_`.  
+> Grupo sugerido: `GD Columns`.
+
+### 3.1 Text (Texto)
+- `GD_Codigo`
+- `GD_NombreProcedimiento`
+- `GD_ProductoLabels` *(texto auxiliar: etiquetas o búsqueda)*
+- `GD_Version`
+
+### 3.2 Choice (Selección)
+- `GD_Aplicabilidad`:
+  - `General`
+  - `Por producto`
+
+- `GD_Estatus`:
+  - `Borrador`
+  - `En revisión`
+  - `Aprobado`
+  - `Rechazado`
+  - `Obsoleto`
+
+- `GD_TipoProceso`:
+  - `Proceso de Manufactura`
+  - `Administrativos Transversales de cada Planta`
+
+- `GD_MotivoActualizacion`:
+  - `Actualización normativa`
+  - `Auditoría interna`
+  - `Auditoría externa`
+  - `Mejora de proceso`
+  - `Cambio operativo`
+
+- `GD_ImpactoContinuidad`:
+  - `Alto`
+  - `Medio`
+  - `Bajo`
+
+### 3.3 Date (solo fecha)
+> En SharePoint: Field Type = `DateTime`, con `Format=DateOnly`.
+
+- `GD_FechaDivulgacion`
+- `GD_FechaActualizacion`
+- `GD_VigenciaHasta`
+- `GD_FechaCaducidad`
+- `GD_FechaHomologacion`
+- `GD_FechaVencimientoYUM`
+
+### 3.4 People (Personas)
+- Single:
+  - `GD_AprobadoPorYUM`
+  - `GD_ResponsablePrincipal`
+- Multi:
+  - `GD_RespElaboracionActualizacion`
+  - `GD_RespRevision`
+  - `GD_RespAprobacion`
+
+---
+
+## 4) Taxonomy Site Columns (Managed Metadata)
+
+> Deben crearse y enlazarse a term sets dentro del Term Group `GestorDocumentalGD`.
+
+### 4.1 Single-value (por defecto)
+- `GD_Categoria` → TermSet `GD - Categoria`
+- `GD_Alcance` → TermSet `GD - Alcance`
+- `GD_Confidencialidad` → TermSet `GD - Confidencialidad`
+- `GD_DepartamentoResponsable` → TermSet `GD - Areas - Departamentos`
+- `GD_CargoLiderPO` → TermSet `GD - Cargos - Roles`
+- `GD_AmbitoPrograma` → TermSet `GD - Ambito - Programa`
+
+### 4.2 Multi-value (confirmados)
+- `GD_PlantasAplicables` → TermSet `GD - Plantas y Centros` (**Multi**)
+- `GD_HomologacionPlanta` → TermSet `GD - Plantas y Centros` (**Multi**)
+- `GD_Producto` → TermSet `GD - Producto - Familia - SKU` (**Multi**)
+
+---
+
+## 5) Content Types (a nivel de sitio)
+
+### 5.1 Content Types requeridos
+- `GD – PO`
+- `GD – IT`
+
+### 5.2 Herencia
+- Ambos heredan de: **Document**
+
+### 5.3 Field Links
+Deben incluir:
+- Todos los campos base (Sección 3)
+- Todos los campos de taxonomía (Sección 4)
+
+> Regla: por defecto, no requeridos.
+
+---
+
+## 6) Biblioteca de documentos
+
+### 6.1 Biblioteca objetivo
+- Default: `Gestor Documental`
+- Alternativo: `Documentos GD Generales`
+- Debe ser parametrizable (`-LibraryTitle`)
+
+### 6.2 Configuración esperada
+- Content types habilitados
+- Content types agregados a la biblioteca:
+  - `GD – PO`
+  - `GD – IT`
+- Recomendación: mantener `Document` (default)
+
+---
+
+## 7) Criterios de contraste (para otras herramientas)
+
+Al comparar contra otras herramientas (p. ej. plantillas provisioning, IaC o scripts alternos), validar:
+
+1. Nombres exactos:
+   - Term Group, Term Sets, InternalName de fields, nombres de CTs
+2. Cardinalidad:
+   - Multi en `GD_Producto`, `GD_PlantasAplicables`, `GD_HomologacionPlanta`
+3. Tipos y formatos:
+   - Fechas como DateOnly (DateTime+Format)
+   - People multi vs single
+4. Enlaces:
+   - Taxonomy fields enlazados al Term Set correcto
+   - CTs enlazando todos los fields
+   - Biblioteca con CTs habilitados y CTs agregados
+5. Idempotencia:
+   - Re-ejecución sin duplicados ni fallos
