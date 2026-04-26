@@ -1,0 +1,25 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "a1b2c3d4-1111-2222-3333-444455556666",
+  "alias": "GdNavigationWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": ["SharePointWebPart", "TeamsPersonalApp", "TeamsTab"],
+  "supportsThemeVariants": true,
+  "preconfiguredEntries": [
+    {
+      "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+      "group": { "default": "Other" },
+      "title": { "default": "GD Navigation" },
+      "description": { "default": "Gestor Documental Navigation" },
+      "officeFabricIconFontName": "Product",
+      "properties": {
+        "navJsonUrl": "/sites/KFCGD/SiteAssets/nav.json",
+        "resultsPageUrl": "/sites/KFCGD/SitePages/resultados.aspx",
+        "nodeIdParam": "nodeId"
+      }
+    }
+  ]
+}
