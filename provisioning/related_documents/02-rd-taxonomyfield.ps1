@@ -77,7 +77,7 @@ if (Get-PnPField -Identity 'GD_LineaProceso' -ErrorAction SilentlyContinue) {
   Write-Host "Field exists (skip): GD_LineaProceso"
 } else {
   Add-PnPTaxonomyField `
-    -DisplayName  'Línea de proceso' `
+    -DisplayName  'Líneas de proceso' `
     -InternalName 'GD_LineaProceso' `
     -Group        $group `
     -TermSetPath  "$TermGroupName|$termSetName" `

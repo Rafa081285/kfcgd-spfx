@@ -43,7 +43,7 @@ Este tipo documental se usa cuando:
 
 ### 4.1 Mecanismo de relación (MVP recomendado)
 La relación se captura mediante el campo:
-- **Documento general relacionado (URL)** (`GD_DocumentoGeneralUrl`) — tipo **Hipervínculo**
+- **Documento general relacionado** (`GD_DocumentoGeneral`) — tipo **Hipervínculo**
 
 **Regla (MVP):**
 - El usuario copia el enlace del documento general y lo pega en este campo al crear/editar el documento relacionado.
@@ -70,19 +70,19 @@ La relación se captura mediante el campo:
 | NOMBRE DEL PROCEDIMIENTO | `GD_NombreProcedimiento` | Text | No | Reusar (base) | Ej: “PO Gestión Documental”. |
 | TIPO (APLICA POR PRODUCTO O GENERAL) | `GD_Aplicabilidad` | Choice | No | Reusar (base) | `General` / `Por producto`. |
 | NOMBRE DE DOCUMENTO HOMOLOGADO | `GD_NombreDocumentoHomologado` | Text | No | Nuevo | Nombre estandarizado del documento relacionado. |
-| VISUALIZACIÓN DOCUMENTO | `GD_VisualizacionDocumento` | Text (o Choice) | No | Nuevo | Ej: “Cargar documento.” / “Solo lectura” / “Adjunto”. |
+| VISUALIZACIÓN DOCUMENTO | `GD_VisualizacionDocumento` | URL (Hyperlink) | No | Nuevo | Enlace directo al archivo para visualización. |
 | APLICA A QUÉ PLANTA | `GD_PlantasAplicables` | Managed Metadata | Sí | Reusar (taxonomía base) | TermSet: `GD - Plantas y Centros` (multi). |
-| APLICA A ALGUNA LÍNEA DE PROCESO | `GD_LineaProceso` | Managed Metadata (ideal) | Sí | Nuevo | Requiere TermSet (p.ej. `GD - Líneas de Proceso`). Alternativa MVP: Text. |
+| APLICA A ALGUNA LÍNEA DE PROCESO | `GD_LineaProceso` | Managed Metadata | Sí | Nuevo (taxonomía) | TermSet: `GD - Lineas de Proceso` (Closed, grupo `GestorDocumentalGD`). Multi-valor. |
 | VERSIÓN | `GD_Version` | Text | No | Reusar (base) | Ej: 1.0 / 2.0. |
 | VIGENCIA | `GD_VigenciaHasta` | Date (DateOnly) | No | Reusar (base) | Vigencia “hasta”. |
-| FECHA DE EMISIÓN | `GD_FechaDivulgacion` | Date (DateOnly) | No | Reusar (base) | Si “Emisión” ≠ “Divulgación”: crear `GD_FechaEmision`. |
+| FECHA DE EMISIÓN | `GD_FechaEmision` | Date (DateOnly) | No | Nuevo | Fecha en que se emitió el documento. |
 | FECHA DE ACTUALIZACIÓN | `GD_FechaActualizacion` | Date (DateOnly) | No | Reusar (base) | — |
 | FECHA DE CADUCIDAD | `GD_FechaCaducidad` | Date (DateOnly) | No | Reusar (base) | — |
 | RESPONSABLE DE ACTUALIZACIÓN | `GD_RespElaboracionActualizacion` | Person/Group | Sí | Reusar (base) | Multi-person recomendado. |
 | ESTATUS | `GD_Estatus` | Choice | No | Reusar (base) | `Borrador` / `En revisión` / `Aprobado` / `Rechazado` / `Obsoleto`. |
 | APROBADO POR YUM | `GD_AprobadoPorYUM` | Person/Group | No | Reusar (base) | Alterno: Sí/No + aprobador separado. |
 | FECHA DE VENCIMIENTO YUM | `GD_FechaVencimientoYUM` | Date (DateOnly) | No | Reusar (base) | — |
-| DOCUMENTO GENERAL RELACIONADO (URL) | `GD_DocumentoGeneralUrl` | Hyperlink | No | Nuevo | Enlace al documento general. |
+| DOCUMENTO GENERAL RELACIONADO | `GD_DocumentoGeneral` | Hyperlink | No | Nuevo | Enlace al Documento general (PO/IT) padre. |
 | PRODUCTO (si aplica) | `GD_Producto` | Managed Metadata | Sí | Reusar (taxonomía base) | TermSet: `GD - Producto - Familia - SKU` (multi). |
 
 ---
