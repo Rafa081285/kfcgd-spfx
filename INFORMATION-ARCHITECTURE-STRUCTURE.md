@@ -1,0 +1,1 @@
+KFCGD — Estructura de información (IA) y metadatos — Especificación para revisión/contraste
