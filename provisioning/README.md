@@ -1,81 +1,79 @@
-# PnP PowerShell Provisioning Scripts
+# KFCGD Provisioning (PnP PowerShell)
 
-This directory contains PowerShell scripts for provisioning various SharePoint resources for KFCGD.
+This folder contains PnP.PowerShell scripts to provision SharePoint Online resources directly in **/sites/KFCGD** (no Content Type Hub), using a tenant URL parameter.
 
-## Scripts Overview
+## Prerequisites
 
-1. **01-termstore.ps1**: Creates a term store group and term sets with the agreed taxonomy.
-2. **02-sitecolumns.ps1**: Creates site columns with agreed internal names.
-3. **03-contenttypes.ps1**: Creates content types inheriting from the Document content type and adds required site columns.
-4. **04-library.ps1**: Creates a document library titled 'Gestor Documental', enables content types, adds GD content types, and the site columns.
+- Install PnP.PowerShell:
 
-## Usage
-
-Each script requires the tenant URL as a parameter, and you can connect using the following command:
 ```powershell
-Connect-PnPOnline -Url <tenant>/sites/KFCGD -Interactive
+Install-Module PnP.PowerShell -Scope CurrentUser
 ```
 
-## Script Details
+- You must have permission to:
+  - Manage the site `/sites/KFCGD`
+  - Manage Term Store (or at least create groups/term sets/terms)
 
-### 01-termstore.ps1
+## Parameters (all scripts)
+
+- `-TenantUrl` (**required**) e.g. `https://contoso.sharepoint.com`
+- `-SiteRelativeUrl` (optional) default: `/sites/KFCGD`
+- `-TermGroupName` (optional) default: `GestorDocumentalGD` (no spaces)
+
+## Execution order (recommended)
+
+> Run in this exact order to satisfy dependencies.
+
 ```powershell
-param(
-    [string]$tenantUrl
-)
+# 1) Term Store group + term sets (Closed) + terms
+.
+\01-termstore.ps1 -TenantUrl "https://contoso.sharepoint.com"
 
-# Connect to PnP Online
-Connect-PnPOnline -Url $tenantUrl -Interactive
+# 2) Base site columns (Text/Choice/Date/People)
+.
+\02-sitecolumns.ps1 -TenantUrl "https://contoso.sharepoint.com"
 
-# Create Term Store Group
-$groupName = "GestorDocumentalGD"
-$termStore = Get-PnPTermStore
-$group = Get-PnPTermGroup -TermStore $termStore | Where-Object { $_.Name -eq $groupName }
-if (-not $group) {
-    $group = New-PnPTermGroup -Name $groupName
-}
+# 3) Site content types: GD – PO, GD – IT (attach base fields)
+.
+\03-contenttypes.ps1 -TenantUrl "https://contoso.sharepoint.com"
 
-# Create Term Sets (Closed)
-# Add idempotency checks for term sets here...
+# 4) Managed Metadata site columns bound to Term Sets + attach to CTs
+.
+\05-taxonomyfields.ps1 -TenantUrl "https://contoso.sharepoint.com"
+
+# 5) Create library "Gestor Documental" + enable CTs + add CTs
+.
+\04-library.ps1 -TenantUrl "https://contoso.sharepoint.com"
 ```
 
-### 02-sitecolumns.ps1
-```powershell
-param(
-    [string]$tenantUrl
-)
+## Scripts
 
-# Connect to PnP Online
-Connect-PnPOnline -Url $tenantUrl -Interactive
+- `01-termstore.ps1`
+  - Creates/ensures Term Group `GestorDocumentalGD`
+  - Creates/ensures Term Sets **Closed** and the initial terms (MVP)
 
-# Create Site Columns
-# Add idempotency checks for site columns here...
-```
+- `02-sitecolumns.ps1`
+  - Creates base Site Columns (internal names agreed in the design document)
 
-### 03-contenttypes.ps1
-```powershell
-param(
-    [string]$tenantUrl
-)
+- `03-contenttypes.ps1`
+  - Creates site content types inheriting from `Document`:
+    - `GD – PO`
+    - `GD – IT`
+  - Attaches base fields
 
-# Connect to PnP Online
-Connect-PnPOnline -Url $tenantUrl -Interactive
+- `05-taxonomyfields.ps1`
+  - Creates Managed Metadata fields bound to the Term Sets in `GestorDocumentalGD`
+  - Important multi-value fields (confirmed):
+    - `GD_Producto` (multi)
+    - `GD_PlantasAplicables` (multi)
+  - Attaches taxonomy fields to `GD – PO` and `GD – IT`
 
-# Create Content Types GD – PO and GD – IT
-# Add idempotency checks for content types...
-```
+- `04-library.ps1`
+  - Creates the library `Gestor Documental`
+  - Enables content types
+  - Adds `GD – PO` and `GD – IT`
 
-### 04-library.ps1
-```powershell
-param(
-    [string]$tenantUrl
-)
+## Notes
 
-# Connect to PnP Online
-Connect-PnPOnline -Url $tenantUrl -Interactive
-
-# Create Document Library
-# Enable Content Types
-# Add GD Content Types and Site Columns
-```
-
+- Scripts are intended to be idempotent (re-running should skip already existing resources).
+- If `Add-PnPTaxonomyField` parameter names differ in your PnP.PowerShell version, update the script accordingly.
