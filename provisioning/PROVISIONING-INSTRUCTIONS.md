@@ -1,22 +1,165 @@
-# KFCGD Provisioning (PnP.PowerShell)  
+# KFCGD Provisioning (PnP.PowerShell) — Instrucciones funcionales
 
-## Instrucciones funcionales  
+Este documento describe **qué hace** el provisioning y **cómo debe ejecutarse** (funcionalmente), para contrastarlo con lo implementado en los scripts PnP.PowerShell del repositorio.
 
-### Requisitos previos  
-1. Tener instalado PnP.PowerShell en su entorno.  
-2. Confirmar que tiene permisos de administrador en el sitio SharePoint.
+> Alcance: aprovisionamiento directo en un sitio SharePoint Online (por defecto: `/sites/KFCGD`), **sin Content Type Hub**, usando PnP.PowerShell.
 
-### Pasos de provisión  
-1. Conéctese al sitio de SharePoint utilizando:
-   ```powershell
-   Connect-PnPOnline -Url https://su-sitio.sharepoint.com -UseWebLogin
-   ```
-2. Ejecute los siguientes comandos para crear las listas requeridas:
-   ```powershell
-   # Crear listas
-   New-PnPList -Title "Nombre de la Lista" -Template GenericList
-   ```
-3. Asegúrese de verificar la configuración de las listas una vez creadas.  
+---
 
-### Consideraciones finales  
-Es recomendable ejecutar estos pasos en un entorno de prueba antes de aplicarlos en producción.
+## 1) Objetivo del provisioning
+
+Aprovisionar, de forma repetible e idempotente, los elementos necesarios para un Gestor Documental:
+
+1. **Term Store**
+   - Grupo de términos: `GestorDocumentalGD`
+   - Term sets requeridos (cerrados / *Closed*) con términos semilla
+2. **Site Columns base**
+   - Campos tipo Texto, Choice, Fecha (solo fecha), Personas (single/multi)
+3. **Taxonomy Site Columns**
+   - Columnas Managed Metadata enlazadas a term sets del Term Store
+4. **Content Types**
+   - Content Types a nivel de sitio:
+     - `GD – PO`
+     - `GD – IT`
+   - Heredan de `Document`
+   - Incluyen field links a: site columns base + taxonomy columns
+5. **Biblioteca**
+   - Biblioteca de documentos (parametrizable):
+     - Título por defecto: `Gestor Documental`
+     - Puede cambiarse a `Documentos GD Generales` u otro nombre
+   - Content Types habilitados
+   - Content Types `GD – PO` y `GD – IT` añadidos a la biblioteca
+   - Recomendación: **NO eliminar** el CT “Document” por defecto
+
+---
+
+## 2) Prerrequisitos
+
+### 2.1 Módulo PnP.PowerShell
+Instalar PnP.PowerShell:
+
+```powershell
+Install-Module PnP.PowerShell -Scope CurrentUser
+```
+
+### 2.2 Permisos
+Debes tener permisos para:
+- Administrar el sitio `/sites/KFCGD`
+- Administrar el Term Store (o al menos crear: grupo / term sets / términos)
+
+---
+
+## 3) Parámetros y convenciones
+
+### 3.1 Parámetros comunes (todos los scripts)
+- `-TenantUrl` (**obligatorio**)
+  - Ej: `https://contoso.sharepoint.com`
+- `-SiteRelativeUrl` (opcional)
+  - Default: `/sites/KFCGD`
+
+### 3.2 Parámetros específicos
+- Term Store / taxonomía:
+  - `-TermGroupName` (opcional), default: `GestorDocumentalGD`
+- Biblioteca:
+  - `-LibraryTitle` (opcional), default: `Gestor Documental`
+
+### 3.3 Autenticación / Conexión
+Todos los scripts deben conectarse con autenticación interactiva y con URL completo:
+
+```powershell
+$siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
+Connect-PnPOnline -Url $siteUrl -Interactive
+```
+
+> Evitar `-UseWebLogin` (obsoleto/no recomendado).
+
+---
+
+## 4) Orden de ejecución (recomendado)
+
+> Ejecuta en este orden para respetar dependencias.
+
+1. `01-termstore.ps1`  
+   Crea grupo/term sets/términos (Term Store).
+2. `02-sitecolumns.ps1`  
+   Crea columnas base (Text/Choice/DateOnly/People).
+3. `05-taxonomyfields.ps1`  
+   Crea columnas Managed Metadata (MM) enlazadas al Term Store.
+4. `03-contenttypes.ps1`  
+   Crea content types `GD – PO` y `GD – IT` y enlaza todas las columnas (base + MM).
+5. `04-library.ps1`  
+   Crea biblioteca, habilita content types y añade `GD – PO` / `GD – IT`.
+
+Ejemplo:
+
+```powershell
+.\01-termstore.ps1 -TenantUrl "https://contoso.sharepoint.com"
+.\02-sitecolumns.ps1 -TenantUrl "https://contoso.sharepoint.com"
+.\05-taxonomyfields.ps1 -TenantUrl "https://contoso.sharepoint.com"
+.\03-contenttypes.ps1 -TenantUrl "https://contoso.sharepoint.com"
+.\04-library.ps1 -TenantUrl "https://contoso.sharepoint.com" -LibraryTitle "Documentos GD Generales"
+```
+
+---
+
+## 5) Reglas funcionales (idempotencia y consistencia)
+
+### 5.1 Idempotencia
+Cada script debe poder ejecutarse N veces sin romper:
+- Si el recurso existe (grupo/term set/field/CT/biblioteca), debe “asegurarse” o saltarse.
+- No debe crear duplicados.
+- Debe registrar mensajes claros:
+  - `created` / `exists` / `skipped` / `warning`
+
+### 5.2 Tipos de campo base
+- **Fechas**: se crean como `DateTime`, con `Format=DateOnly`.
+- **Choice**: debe incluir lista de opciones exactas.
+- **People**:
+  - Single: campo `User` (PeopleOnly)
+  - Multi: campo `User` con `Mult="TRUE"` (PeopleOnly)
+
+### 5.3 Term sets Closed
+- Los term sets deben ser “Closed” (no abiertos), para controlar el vocabulario.
+
+### 5.4 Content Types
+- Deben heredar de `Document`
+- Deben incluir field links a:
+  - campos base (02)
+  - campos MM (05)
+
+### 5.5 Biblioteca
+- Content types habilitados
+- `GD – PO` y `GD – IT` añadidos
+- Recomendación: **no eliminar** el CT “Document” por defecto
+
+---
+
+## 6) Validación post-provisioning (checklist)
+
+### 6.1 Term Store
+- Existe el grupo `GestorDocumentalGD`
+- Existen term sets esperados y están *Closed*
+- Existen términos semilla
+
+### 6.2 Site Columns
+- Existen todos los campos base por InternalName (prefijo `GD_`)
+- Fechas están en “solo fecha”
+- People multi y single están correctos
+
+### 6.3 Taxonomy Fields
+- Existen los campos MM
+- Cada campo está enlazado al term set correcto
+- Multi-value en:
+  - `GD_Producto`
+  - `GD_PlantasAplicables`
+  - `GD_HomologacionPlanta`
+
+### 6.4 Content Types
+- Existen `GD – PO` y `GD – IT`
+- Heredan de `Document`
+- Tienen enlazados los fields base + MM
+
+### 6.5 Biblioteca
+- Existe la biblioteca (título coincide con `-LibraryTitle`)
+- Content Types habilitados
+- CTs `GD – PO` y `GD – IT` están presentes
