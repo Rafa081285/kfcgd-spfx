@@ -11,7 +11,6 @@ import {
   DetailsListLayoutMode,
   IColumn,
   SelectionMode,
-  Link,
   Panel,
   PanelType,
   IconButton
@@ -36,9 +35,14 @@ export interface IGdNavigationState {
   relatedItems: object[];
   loadingRelatedItems: boolean;
   relatedItemsError: string | null;
+  isDocumentModalOpen: boolean;
+  documentModalTitle: string;
+  documentModalUrl: string;
+  documentModalSource: 'main' | 'related' | null;
   ignoreNextActiveItemChange: boolean;
   isInfoPanelOpen: boolean;
   activeFilter: 'all' | 'expired' | 'dueThisMonth';
+  searchTerm: string;
   currentPage: number;
 }
 
@@ -162,6 +166,30 @@ function countUpdatedThisMonth(items: object[]): number {
   return total;
 }
 
+function normalizeText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[áàäâ]/g, 'a')
+    .replace(/[éèëê]/g, 'e')
+    .replace(/[íìïî]/g, 'i')
+    .replace(/[óòöô]/g, 'o')
+    .replace(/[úùüû]/g, 'u')
+    .replace(/ñ/g, 'n');
+}
+
+function filterItemsByName(items: object[], searchTerm: string): object[] {
+  const normalizedTerm = normalizeText(searchTerm.trim());
+  if (!normalizedTerm) {
+    return items;
+  }
+
+  return items.filter(item => {
+    const row = item as IListItemRow;
+    const documentName = row.FileLeafRef || '';
+    return normalizeText(documentName).indexOf(normalizedTerm) !== -1;
+  });
+}
+
 function collectNodes(nodes: INavNode[]): INavNode[] {
   const result: INavNode[] = [];
 
@@ -189,6 +217,8 @@ function buildNavLinks(nodes: INavNode[]): INavLink[] {
 }
 
 export default class GdNavigation extends React.Component<IGdNavigationProps, IGdNavigationState> {
+  private _suppressNextActiveItemChange = false;
+
   constructor(props: IGdNavigationProps) {
     super(props);
     this.state = {
@@ -205,9 +235,14 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
       relatedItems: [],
       loadingRelatedItems: false,
       relatedItemsError: null,
+      isDocumentModalOpen: false,
+      documentModalTitle: '',
+      documentModalUrl: '',
+      documentModalSource: null,
       ignoreNextActiveItemChange: false,
       isInfoPanelOpen: false,
       activeFilter: 'all',
+      searchTerm: '',
       currentPage: 1
     };
   }
@@ -254,9 +289,14 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
       relatedItems: [],
       loadingRelatedItems: false,
       relatedItemsError: null,
+      isDocumentModalOpen: false,
+      documentModalTitle: '',
+      documentModalUrl: '',
+      documentModalSource: null,
       ignoreNextActiveItemChange: false,
       isInfoPanelOpen: false,
       activeFilter: 'all',
+      searchTerm: '',
       currentPage: 1
     });
 
@@ -284,6 +324,7 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
       selectedNodeLabel: nodeLabel,
       loadingItems: true,
       itemsError: null,
+      searchTerm: '',
       currentPage: 1
     });
 
@@ -319,11 +360,39 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
         minWidth: 220,
         maxWidth: 420,
         isResizable: true,
-        onRender: (item: { FileLeafRef: string; FileRef: string }) => (
-          <Link href={item.FileRef} target="_blank" styles={{ root: { color: '#9f0d24', fontWeight: 600 } }}>
-            {item.FileLeafRef}
-          </Link>
-        )
+        onRender: (item: IListItemRow) => {
+          const url = this._resolveDocumentUrl(item.FileRef || '');
+          return (
+            <button
+              type="button"
+              onMouseDown={() => {
+                this._preventNextActiveItemChange();
+              }}
+              onKeyDown={() => {
+                this._preventNextActiveItemChange();
+              }}
+              onClick={(ev: React.MouseEvent<HTMLButtonElement>) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                this._openDocumentModal(item.FileLeafRef || 'Documento', url, 'main');
+              }}
+              style={{
+                border: 0,
+                background: 'none',
+                padding: 0,
+                margin: 0,
+                color: '#9f0d24',
+                fontWeight: 600,
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                font: 'inherit',
+                textAlign: 'left'
+              }}
+            >
+              {item.FileLeafRef}
+            </button>
+          );
+        }
       },
       {
         key: 'ContentType',
@@ -361,11 +430,39 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
         minWidth: 220,
         maxWidth: 420,
         isResizable: true,
-        onRender: (item: IListItemRow) => (
-          <Link href={item.FileRef} target="_blank" styles={{ root: { color: '#9f0d24', fontWeight: 600 } }}>
-            {item.FileLeafRef}
-          </Link>
-        )
+        onRender: (item: IListItemRow) => {
+          const url = this._resolveDocumentUrl(item.FileRef || '');
+          return (
+            <button
+              type="button"
+              onMouseDown={() => {
+                this._preventNextActiveItemChange();
+              }}
+              onKeyDown={() => {
+                this._preventNextActiveItemChange();
+              }}
+              onClick={(ev: React.MouseEvent<HTMLButtonElement>) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                this._openDocumentModal(item.FileLeafRef || 'Documento relacionado', url, 'related');
+              }}
+              style={{
+                border: 0,
+                background: 'none',
+                padding: 0,
+                margin: 0,
+                color: '#9f0d24',
+                fontWeight: 600,
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                font: 'inherit',
+                textAlign: 'left'
+              }}
+            >
+              {item.FileLeafRef}
+            </button>
+          );
+        }
       },
       {
         key: 'GD_Estatus',
@@ -384,6 +481,37 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
         isResizable: true
       }
     ];
+  }
+
+  private _resolveDocumentUrl(fileRef: string): string {
+    if (!fileRef) {
+      return '';
+    }
+
+    if (fileRef.indexOf('http://') === 0 || fileRef.indexOf('https://') === 0) {
+      return fileRef;
+    }
+
+    return `${window.location.origin}${fileRef}`;
+  }
+
+  private _openDocumentModal(title: string, url: string, source: 'main' | 'related'): void {
+    if (!url) {
+      return;
+    }
+
+    this.setState({
+      isDocumentModalOpen: true,
+      documentModalTitle: title,
+      documentModalUrl: url,
+      documentModalSource: source,
+      ignoreNextActiveItemChange: true
+    });
+  }
+
+  private _preventNextActiveItemChange(): void {
+    // Synchronous flag to avoid row activation side effects on first click.
+    this._suppressNextActiveItemChange = true;
   }
 
   private async _openRelatedItemsPanel(item: object): Promise<void> {
@@ -447,9 +575,14 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
       relatedItems,
       loadingRelatedItems,
       relatedItemsError,
+      isDocumentModalOpen,
+      documentModalTitle,
+      documentModalUrl,
+      documentModalSource,
       ignoreNextActiveItemChange,
       isInfoPanelOpen,
       activeFilter,
+      searchTerm,
       currentPage
     } = this.state;
     const statusBuckets = buildStatusBuckets(items);
@@ -460,11 +593,12 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
       : activeFilter === 'expired'
         ? expiredItems
         : dueThisMonthItems;
+    const searchFilteredItems = filterItemsByName(filteredItems, searchTerm);
     const pageSize = getEffectivePageSize(this.props.pageSize);
-    const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+    const totalPages = Math.max(1, Math.ceil(searchFilteredItems.length / pageSize));
     const safePage = Math.min(currentPage, totalPages);
     const pageStart = (safePage - 1) * pageSize;
-    const pagedItems = filteredItems.slice(pageStart, pageStart + pageSize);
+    const pagedItems = searchFilteredItems.slice(pageStart, pageStart + pageSize);
     const docsByType = buildCountByField(items, 'ContentType');
     const reasonsByUpdate = buildCountByField(items, 'GD_MotivoActualizacion');
     const updatedThisMonth = countUpdatedThisMonth(items);
@@ -714,17 +848,41 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
                   </button>
                 </div>
 
+                <div style={{ marginBottom: 12 }}>
+                  <input
+                    type="search"
+                    value={searchTerm}
+                    onChange={(ev: React.ChangeEvent<HTMLInputElement>) => {
+                      this.setState({ searchTerm: ev.target.value, currentPage: 1 });
+                    }}
+                    placeholder="Buscar por nombre del procedimiento o documento"
+                    aria-label="Buscar documentos por nombre"
+                    style={{
+                      width: '100%',
+                      border: `1px solid ${BRAND.border}`,
+                      borderRadius: 8,
+                      padding: '8px 10px',
+                      fontSize: 13,
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
                 {loadingItems && <Spinner size={SpinnerSize.medium} label="Loading documents..." />}
 
                 {!loadingItems && itemsError && (
                   <MessageBar messageBarType={MessageBarType.error}>{itemsError}</MessageBar>
                 )}
 
-                {!loadingItems && !itemsError && filteredItems.length === 0 && (
-                  <MessageBar>No documents found for this node.</MessageBar>
+                {!loadingItems && !itemsError && searchFilteredItems.length === 0 && (
+                  <MessageBar>
+                    {searchTerm.trim().length > 0
+                      ? 'No se encontraron documentos que coincidan con la busqueda.'
+                      : 'No documents found for this node.'}
+                  </MessageBar>
                 )}
 
-                {!loadingItems && !itemsError && filteredItems.length > 0 && (
+                {!loadingItems && !itemsError && searchFilteredItems.length > 0 && (
                   <div>
                     <DetailsList
                       items={pagedItems}
@@ -744,7 +902,8 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
                         }
                       }}
                       onActiveItemChanged={(activeItem?: object) => {
-                        if (ignoreNextActiveItemChange) {
+                        if (this._suppressNextActiveItemChange || ignoreNextActiveItemChange) {
+                          this._suppressNextActiveItemChange = false;
                           this.setState({ ignoreNextActiveItemChange: false });
                           return;
                         }
@@ -762,7 +921,7 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
 
                     <div style={pagerContainerStyle}>
                       <div style={{ color: BRAND.textMuted, fontSize: 12 }}>
-                        Pagina {safePage} de {totalPages} - {filteredItems.length} documento(s)
+                        Pagina {safePage} de {totalPages} - {searchFilteredItems.length} documento(s)
                       </div>
                       <div>
                         <button
@@ -974,6 +1133,42 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
         </Panel>
 
         <Panel
+          isOpen={isDocumentModalOpen}
+          onDismiss={() => {
+            const shouldKeepRelatedPanel = documentModalSource === 'related';
+            this.setState({
+              isDocumentModalOpen: false,
+              documentModalTitle: '',
+              documentModalUrl: '',
+              documentModalSource: null,
+              isRelatedPanelOpen: shouldKeepRelatedPanel ? true : isRelatedPanelOpen,
+              ignoreNextActiveItemChange: true
+            });
+          }}
+          closeButtonAriaLabel="Cerrar"
+          type={PanelType.large}
+          headerText={documentModalTitle}
+          styles={{
+            main: {
+              borderLeft: `4px solid ${BRAND.primary}`
+            },
+            contentInner: {
+              padding: 0
+            }
+          }}
+        >
+          {documentModalUrl ? (
+            <iframe
+              src={documentModalUrl}
+              title={documentModalTitle}
+              style={{ width: '100%', height: '75vh', border: 0 }}
+            />
+          ) : (
+            <MessageBar>No se pudo abrir la vista previa del documento.</MessageBar>
+          )}
+        </Panel>
+
+        <Panel
           isOpen={isInfoPanelOpen}
           onDismiss={() => {
             this.setState({ isInfoPanelOpen: false });
@@ -993,6 +1188,7 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
           <ul style={{ margin: 0, paddingLeft: 20, lineHeight: 1.5 }}>
             <li>Selecciona un nodo para refrescar resultados.</li>
             <li>Filtra por estado: todos, vencidos o por vencer este mes.</li>
+            <li>Busca por nombre de procedimiento o documento con coincidencia parcial.</li>
             <li>Selecciona una fila para abrir relacionados en ventana flotante.</li>
           </ul>
         </Panel>
