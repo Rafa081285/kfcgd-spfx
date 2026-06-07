@@ -1,7 +1,9 @@
 param(
     [string]$TenantUrl,
-    [string]$SiteRelativeUrl = '/sites/KFCGD',
-    [string]$TermGroupName = 'GestorDocumentalGD'
+    [string]$SiteRelativeUrl = '/sites/ecu-devgestioncalidadplt',
+    [string]$TermGroupName = 'GestorDocumentalGD',
+    [string]$ClientId,
+    [string]$Tenant
 )
 
 function Ensure-TermSet {
@@ -14,9 +16,13 @@ function Ensure-TermSet {
     Write-Host "Ensuring TermSet: $TermSetName"
     $termSet = Get-PnPTermSet -Identity $TermSetName -TermGroup $GroupName -ErrorAction SilentlyContinue
     if (-not $termSet) {
-        $termSet = New-PnPTermSet -Name $TermSetName -Group $GroupName -IsOpen $IsOpen
+        if ($IsOpen) {
+            $termSet = New-PnPTermSet -Name $TermSetName -TermGroup $GroupName -IsOpen
+        } else {
+            $termSet = New-PnPTermSet -Name $TermSetName -TermGroup $GroupName
+        }
         foreach ($term in $Terms) {
-            Ensure-Term $termSet $term
+            Ensure-Term $termSet $GroupName $term
         }
     } else {
         Write-Host "TermSet $TermSetName already exists."
@@ -25,20 +31,27 @@ function Ensure-TermSet {
 
 function Ensure-Term {
     param( 
-        [Microsoft.SharePoint.Client.TermStore.TermSet]$TermSet,
+        [object]$TermSet,
+        [string]$GroupName,
         [string]$Term
     )
     Write-Host "Ensuring Term: $Term"
-    $existingTerm = Get-PnPTerm -Identity $Term -TermSet $TermSet -ErrorAction SilentlyContinue
+    $existingTerm = Get-PnPTerm -Identity $Term -TermSet $TermSet -TermGroup $GroupName -ErrorAction SilentlyContinue
     if (-not $existingTerm) {
-        New-PnPTerm -Name $Term -TermSet $TermSet
+        New-PnPTerm -Name $Term -TermSet $TermSet -TermGroup $GroupName
     } else {
         Write-Host "Term $Term already exists."
     }
 }
 
 # Connect to PnP Online
-Connect-PnPOnline -Url ($TenantUrl.TrimEnd('/') + $SiteRelativeUrl) -Interactive
+$connectParams = @{
+    Url         = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
+    Interactive = $true
+}
+if ($ClientId) { $connectParams['ClientId'] = $ClientId }
+if ($Tenant)   { $connectParams['Tenant']   = $Tenant }
+#Connect-PnPOnline @connectParams
 
 # Ensure Term Store Group
 $termGroup = Get-PnPTermGroup -Identity $TermGroupName -ErrorAction SilentlyContinue

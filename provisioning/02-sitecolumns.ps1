@@ -1,11 +1,15 @@
-<powershell>
 param(
   [Parameter(Mandatory=$true)][string]$TenantUrl,
-  [string]$SiteRelativeUrl = '/sites/KFCGD'
+  [string]$SiteRelativeUrl = '/sites/ecu-devgestioncalidadplt',
+  [string]$ClientId,
+  [string]$Tenant
 )
 
 $siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
-Connect-PnPOnline -Url $siteUrl -Interactive
+$connectParams = @{ Url = $siteUrl; Interactive = $true }
+if ($ClientId) { $connectParams['ClientId'] = $ClientId }
+if ($Tenant)   { $connectParams['Tenant']   = $Tenant }
+#Connect-PnPOnline @connectParams
 
 $group = 'GD Columns'
 
@@ -34,9 +38,41 @@ function Ensure-FieldUser {
   param([string]$InternalName, [string]$DisplayName = $InternalName, [switch]$Multi)
   if (Get-PnPField -Identity $InternalName -ErrorAction SilentlyContinue) { return }
 
-  $multAttr = if ($Multi) { " Mult=\"TRUE\"" } else { "" }
-  $xml = "<Field Type=\"User\" Name=\"$InternalName\" DisplayName=\"$DisplayName\" Group=\"$group\" Required=\"FALSE\" UserSelectionMode=\"PeopleOnly\" UserSelectionScope=\"0\"$multAttr />"
-  Add-PnPFieldFromXml -FieldXml $xml | Out-Null
+  Add-PnPField -DisplayName $DisplayName -InternalName $InternalName -Type User -Group $group -AddToDefaultView:$false | Out-Null
+  if ($Multi) {
+    Set-PnPField -Identity $InternalName -Values @{ AllowMultipleValues = $true }
+  }
+}
+
+function Ensure-FieldLookupMulti {
+  param(
+    [Parameter(Mandatory=$true)][string]$InternalName,
+    [Parameter(Mandatory=$true)][string]$DisplayName,
+    [Parameter(Mandatory=$true)][string]$LookupListTitle,
+    [string]$LookupField = 'Title'
+  )
+  if (Get-PnPField -Identity $InternalName -ErrorAction SilentlyContinue) {
+    Write-Host "Field exists (skip): $InternalName"
+    return
+  }
+  $lookupList = Get-PnPList -Identity $LookupListTitle -ErrorAction SilentlyContinue
+  if (-not $lookupList) {
+    Write-Warning "List '$LookupListTitle' not found — cannot create Lookup field '$InternalName'. Run 04-library.ps1 + related_documents/04-rd-library.ps1 first."
+    return
+  }
+  $ctx = Get-PnPContext
+  # Crear campo Lookup base
+  $xml = "<Field Type='Lookup' Name='$InternalName' StaticName='$InternalName' DisplayName='$DisplayName' Group='$group' Required='FALSE' List='{$($lookupList.Id)}' ShowField='$LookupField' />"
+  $ctx.Web.Fields.AddFieldAsXml($xml, $false, [Microsoft.SharePoint.Client.AddFieldOptions]::DefaultValue) | Out-Null
+  $ctx.ExecuteQuery()
+  # Activar multi-valor
+  $field = Get-PnPField -Identity $InternalName
+  $ctx.Load($field)
+  $ctx.ExecuteQuery()
+  $field.AllowMultipleValues = $true
+  $field.Update()
+  $ctx.ExecuteQuery()
+  Write-Host "Created multi-Lookup field: $InternalName (-> $LookupListTitle.$LookupField, multi)"
 }
 
 # 3.1 Identificación
@@ -77,5 +113,9 @@ Ensure-FieldUser -InternalName 'GD_RespElaboracionActualizacion' -DisplayName 'R
 Ensure-FieldUser -InternalName 'GD_RespRevision' -DisplayName 'Responsable revisión' -Multi
 Ensure-FieldUser -InternalName 'GD_RespAprobacion' -DisplayName 'Responsable aprobación' -Multi
 
+# Documentos relacionados (referencia inversa, multi-valor)
+# ShowField=Title => muestra el nombre del documento; href navega al DispForm del relacionado vía lookupId
+Ensure-FieldLookupMulti -InternalName 'GD_DocumentosRelacionados' -DisplayName 'Documentos relacionados' `
+                        -LookupListTitle 'Documentos Relacionados GD' -LookupField 'Title'
+
 Write-Host 'Done.'
-</powershell>

@@ -1,19 +1,16 @@
 <#
 .SYNOPSIS
-  Agrega el Content Type "GD – Relacionado" a la biblioteca de documentos.
+  Crea/asegura la biblioteca de Documentos relacionados y agrega el CT "GD – Relacionado".
 .DESCRIPTION
   - Conecta con -Interactive
-  - Verifica que la biblioteca exista (debe haber sido creada por ../04-library.ps1)
+  - Crea la biblioteca si no existe
   - Habilita Content Types en la biblioteca (idempotente)
   - Agrega el CT "GD – Relacionado" a la biblioteca si no está ya presente
-  - NO elimina CTs existentes (Document, GD – PO, GD – IT)
 .PARAMETER LibraryTitle
-  Título de la biblioteca donde se agrega el CT.
-  Por defecto: 'Gestor Documental'
-  Alternativo: 'Documentos GD Generales' u otro nombre parametrizable.
+  Título de la biblioteca de Documentos relacionados.
+  Por defecto: 'Documentos Relacionados GD'
 .NOTES
   Ejecutar DESPUÉS de:
-    ../04-library.ps1
     03-rd-contenttype.ps1
 #>
 
@@ -21,31 +18,39 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$TenantUrl,
 
-  [string]$SiteRelativeUrl = '/sites/KFCGD',
+  [string]$SiteRelativeUrl = '/sites/ecu-devgestioncalidadplt',
 
-  [string]$LibraryTitle = 'Gestor Documental'
+  [string]$LibraryTitle = 'Documentos Relacionados GD',
+
+  [string]$ClientId,
+  [string]$Tenant
 )
 
 $siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
-Connect-PnPOnline -Url $siteUrl -Interactive
+$connectParams = @{ Url = $siteUrl; Interactive = $true }
+if ($ClientId) { $connectParams['ClientId'] = $ClientId }
+if ($Tenant)   { $connectParams['Tenant']   = $Tenant }
+#Connect-PnPOnline @connectParams
 
 $ctName = 'GD – Relacionado'
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 1) Verificar que la biblioteca existe
+# 1) Crear biblioteca si no existe
 # ─────────────────────────────────────────────────────────────────────────────
 
 $list = Get-PnPList -Identity $LibraryTitle -ErrorAction SilentlyContinue
 if (-not $list) {
-  throw "Biblioteca '$LibraryTitle' no encontrada. Ejecuta ../04-library.ps1 primero."
+  New-PnPList -Title $LibraryTitle -Template DocumentLibrary | Out-Null
+  Write-Host "Library created: $LibraryTitle"
+} else {
+  Write-Host "Library already exists: $LibraryTitle"
 }
-Write-Host "Library found: $LibraryTitle"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 2) Habilitar Content Types (idempotente)
 # ─────────────────────────────────────────────────────────────────────────────
 
-Set-PnPList -Identity $LibraryTitle -ContentTypesEnabled:$true | Out-Null
+Set-PnPList -Identity $LibraryTitle -EnableContentTypes $true | Out-Null
 Write-Host "Content Types enabled on library."
 
 # ─────────────────────────────────────────────────────────────────────────────

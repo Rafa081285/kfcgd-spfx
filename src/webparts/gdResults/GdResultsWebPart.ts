@@ -27,7 +27,7 @@ export default class GdResultsWebPart extends BaseClientSideWebPart<IGdResultsWe
 
     const element: React.ReactElement<IGdResultsProps> = React.createElement(GdResults, {
       sp,
-      navJsonUrl: this.properties.navJsonUrl || '/sites/KFCGD/SiteAssets/nav.json',
+      navJsonUrl: this.properties.navJsonUrl || '/SiteAssets/nav.json',
       nodeIdParam: this.properties.nodeIdParam || 'nodeId',
       libraryTitle: this.properties.libraryTitle || 'Gestor Documental',
       isDarkTheme: false,

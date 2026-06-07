@@ -20,11 +20,17 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$TenantUrl,
 
-  [string]$SiteRelativeUrl = '/sites/KFCGD'
+  [string]$SiteRelativeUrl = '/sites/ecu-devgestioncalidadplt',
+
+  [string]$ClientId,
+  [string]$Tenant
 )
 
 $siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
-Connect-PnPOnline -Url $siteUrl -Interactive
+$connectParams = @{ Url = $siteUrl; Interactive = $true }
+if ($ClientId) { $connectParams['ClientId'] = $ClientId }
+if ($Tenant)   { $connectParams['Tenant']   = $Tenant }
+#Connect-PnPOnline @connectParams
 
 $ctGroup  = 'GD Content Types'
 $ctName   = 'GD – Relacionado'
@@ -39,10 +45,11 @@ if ($existing) {
   $ct = $existing
 } else {
   $parent = Get-PnPContentType -Identity 'Document' -ErrorAction SilentlyContinue
+  if (-not $parent) { $parent = Get-PnPContentType -Identity '0x0101' -ErrorAction SilentlyContinue }
   if (-not $parent) {
     throw "Parent Content Type 'Document' not found. Verify site."
   }
-  $ct = New-PnPContentType `
+  $ct = Add-PnPContentType `
     -Name            $ctName `
     -ParentContentType $parent `
     -Group           $ctGroup `

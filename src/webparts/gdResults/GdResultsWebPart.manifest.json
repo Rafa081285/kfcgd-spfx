@@ -16,7 +16,7 @@
       "description": { "default": "Gestor Documental Results" },
       "officeFabricIconFontName": "BulletedList",
       "properties": {
-        "navJsonUrl": "/sites/KFCGD/SiteAssets/nav.json",
+        "navJsonUrl": "/SiteAssets/nav.json",
         "nodeIdParam": "nodeId",
         "libraryTitle": "Gestor Documental"
       }

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+  "elmType": "a",
+  "attributes": {
+    "href": "=if([$GD_VisualizacionDocumento] != '', [$GD_VisualizacionDocumento], [$FileRef])",
+    "target": "_blank"
+  },
+  "style": {
+    "text-decoration": "none",
+    "color": "#0078d4"
+  },
+  "txtContent": "=if([$GD_VisualizacionDocumento] != '', 'Ver documento', [$FileLeafRef])"
+}

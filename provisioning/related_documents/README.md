@@ -30,6 +30,7 @@ Esta carpeta contiene los scripts PnP.PowerShell para aprovisionar el tipo docum
 $tenant = "https://contoso.sharepoint.com"
 
 # 1) Nuevas columnas base de Documentos relacionados
+#    REQUIERE que la biblioteca ya exista (../04-library.ps1)
 .\01-rd-sitecolumns.ps1 -TenantUrl $tenant
 
 # 2) Term Set "GD - Lineas de Proceso" + campo GD_LineaProceso
@@ -52,19 +53,25 @@ $tenant = "https://contoso.sharepoint.com"
 
 Crea las nuevas site columns exclusivas de "Documentos relacionados":
 
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `GD_Nomenclatura` | Texto | Nomenclatura o sigla del documento |
-| `GD_NombreDocumentoHomologado` | Texto | Nombre del documento homologado de referencia |
-| `GD_VisualizacionDocumento` | URL (Hyperlink) | Enlace directo al archivo |
-| `GD_DocumentoGeneral` | URL (Hyperlink) | Enlace al documento general (PO/IT) relacionado |
-| `GD_FechaEmision` | Fecha (DateOnly) | Fecha de emisión del documento |
+| Campo                          | Tipo             | Descripción                                                    |
+| ------------------------------ | ---------------- | -------------------------------------------------------------- |
+| `GD_Nomenclatura`              | Texto            | Nomenclatura o sigla del documento                             |
+| `GD_NombreDocumentoHomologado` | Texto            | Nombre del documento homologado de referencia                  |
+| `GD_VisualizacionDocumento`    | URL (Hyperlink)  | Enlace directo al archivo                                      |
+| `GD_DocumentoGeneral`          | Lookup           | Referencia al documento general (PO/IT) padre en la biblioteca |
+| `GD_FechaEmision`              | Fecha (DateOnly) | Fecha de emisión del documento                                 |
 
 También verifica (sin crearlos) que los campos reutilizados de Documentos generales ya existan.
 
+> **Nota:** el campo `GD_DocumentoGeneral` es de tipo Lookup. Requiere que la biblioteca `Gestor Documental` ya exista antes de ejecutar este script.
+
 **Parámetros:**
+
 - `-TenantUrl` (**obligatorio**)
 - `-SiteRelativeUrl` (opcional, default: `/sites/KFCGD`)
+- `-LibraryTitle` (opcional, default: `Gestor Documental`) — biblioteca destino del Lookup
+- `-ClientId` (opcional)
+- `-Tenant` (opcional)
 
 ---
 
@@ -75,9 +82,12 @@ Crea el Term Set `GD - Lineas de Proceso` (Closed) con términos semilla, y el c
 **Términos semilla:** Fileteado, Corte, Cocción, Marinado, Empaque, Congelación, Distribución, Control de Calidad, Limpieza y Desinfección, Mantenimiento.
 
 **Parámetros:**
+
 - `-TenantUrl` (**obligatorio**)
 - `-SiteRelativeUrl` (opcional, default: `/sites/KFCGD`)
 - `-TermGroupName` (opcional, default: `GestorDocumentalGD`)
+- `-ClientId` (opcional)
+- `-Tenant` (opcional)
 
 ---
 
@@ -86,20 +96,26 @@ Crea el Term Set `GD - Lineas de Proceso` (Closed) con términos semilla, y el c
 Crea el Content Type `GD – Relacionado` heredando de `Document` y enlaza los 18 campos definidos para este tipo documental.
 
 **Parámetros:**
+
 - `-TenantUrl` (**obligatorio**)
 - `-SiteRelativeUrl` (opcional, default: `/sites/KFCGD`)
+- `-ClientId` (opcional)
+- `-Tenant` (opcional)
 
 ---
 
-### `04-rd-library.ps1` *(opcional)*
+### `04-rd-library.ps1` _(opcional)_
 
 Agrega el Content Type `GD – Relacionado` a la biblioteca especificada.  
 La biblioteca debe existir previamente (creada por `../04-library.ps1`).
 
 **Parámetros:**
+
 - `-TenantUrl` (**obligatorio**)
 - `-SiteRelativeUrl` (opcional, default: `/sites/KFCGD`)
 - `-LibraryTitle` (opcional, default: `Gestor Documental`)
+- `-ClientId` (opcional)
+- `-Tenant` (opcional)
 
 ---
 

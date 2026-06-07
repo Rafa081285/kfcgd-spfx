@@ -12,7 +12,7 @@ Aprovisionar, de forma repetible e idempotente, los elementos necesarios para un
 
 1. **Term Store**
    - Grupo de términos: `GestorDocumentalGD`
-   - Term sets requeridos (cerrados / *Closed*) con términos semilla
+   - Term sets requeridos (cerrados / _Closed_) con términos semilla
 2. **Site Columns base**
    - Campos tipo Texto, Choice, Fecha (solo fecha), Personas (single/multi)
 3. **Taxonomy Site Columns**
@@ -36,6 +36,7 @@ Aprovisionar, de forma repetible e idempotente, los elementos necesarios para un
 ## 2) Prerrequisitos
 
 ### 2.1 Módulo PnP.PowerShell
+
 Instalar PnP.PowerShell:
 
 ```powershell
@@ -43,8 +44,10 @@ Install-Module PnP.PowerShell -Scope CurrentUser
 ```
 
 ### 2.2 Permisos
+
 Debes tener permisos para:
-- Administrar el sitio `/sites/KFCGD`
+
+- Administrar el sitio `/`
 - Administrar el Term Store (o al menos crear: grupo / term sets / términos)
 
 ---
@@ -52,18 +55,21 @@ Debes tener permisos para:
 ## 3) Parámetros y convenciones
 
 ### 3.1 Parámetros comunes (todos los scripts)
+
 - `-TenantUrl` (**obligatorio**)
   - Ej: `https://contoso.sharepoint.com`
 - `-SiteRelativeUrl` (opcional)
   - Default: `/sites/KFCGD`
 
 ### 3.2 Parámetros específicos
+
 - Term Store / taxonomía:
   - `-TermGroupName` (opcional), default: `GestorDocumentalGD`
 - Biblioteca:
   - `-LibraryTitle` (opcional), default: `Gestor Documental`
 
 ### 3.3 Autenticación / Conexión
+
 Todos los scripts deben conectarse con autenticación interactiva y con URL completo:
 
 ```powershell
@@ -105,13 +111,16 @@ Ejemplo:
 ## 5) Reglas funcionales (idempotencia y consistencia)
 
 ### 5.1 Idempotencia
+
 Cada script debe poder ejecutarse N veces sin romper:
+
 - Si el recurso existe (grupo/term set/field/CT/biblioteca), debe “asegurarse” o saltarse.
 - No debe crear duplicados.
 - Debe registrar mensajes claros:
   - `created` / `exists` / `skipped` / `warning`
 
 ### 5.2 Tipos de campo base
+
 - **Fechas**: se crean como `DateTime`, con `Format=DateOnly`.
 - **Choice**: debe incluir lista de opciones exactas.
 - **People**:
@@ -119,15 +128,18 @@ Cada script debe poder ejecutarse N veces sin romper:
   - Multi: campo `User` con `Mult="TRUE"` (PeopleOnly)
 
 ### 5.3 Term sets Closed
+
 - Los term sets deben ser “Closed” (no abiertos), para controlar el vocabulario.
 
 ### 5.4 Content Types
+
 - Deben heredar de `Document`
 - Deben incluir field links a:
   - campos base (02)
   - campos MM (05)
 
 ### 5.5 Biblioteca
+
 - Content types habilitados
 - `GD – PO` y `GD – IT` añadidos
 - Recomendación: **no eliminar** el CT “Document” por defecto
@@ -137,16 +149,19 @@ Cada script debe poder ejecutarse N veces sin romper:
 ## 6) Validación post-provisioning (checklist)
 
 ### 6.1 Term Store
+
 - Existe el grupo `GestorDocumentalGD`
-- Existen term sets esperados y están *Closed*
+- Existen term sets esperados y están _Closed_
 - Existen términos semilla
 
 ### 6.2 Site Columns
+
 - Existen todos los campos base por InternalName (prefijo `GD_`)
 - Fechas están en “solo fecha”
 - People multi y single están correctos
 
 ### 6.3 Taxonomy Fields
+
 - Existen los campos MM
 - Cada campo está enlazado al term set correcto
 - Multi-value en:
@@ -155,11 +170,13 @@ Cada script debe poder ejecutarse N veces sin romper:
   - `GD_HomologacionPlanta`
 
 ### 6.4 Content Types
+
 - Existen `GD – PO` y `GD – IT`
 - Heredan de `Document`
 - Tienen enlazados los fields base + MM
 
 ### 6.5 Biblioteca
+
 - Existe la biblioteca (título coincide con `-LibraryTitle`)
 - Content Types habilitados
 - CTs `GD – PO` y `GD – IT` están presentes
@@ -177,6 +194,7 @@ Debe ejecutarse **después** del provisioning base (secciones 1–5 anteriores).
 ### 7.1 Objetivo
 
 Aprovisionar:
+
 1. Nuevas **site columns** exclusivas: `GD_Nomenclatura`, `GD_NombreDocumentoHomologado`, `GD_VisualizacionDocumento`, `GD_DocumentoGeneral`, `GD_FechaEmision`.
 2. Nuevo **Term Set** `GD - Lineas de Proceso` (Closed) + campo de taxonomía `GD_LineaProceso` (multi-valor).
 3. **Content Type** `GD – Relacionado` heredando de `Document`, con los 18 campos requeridos (nuevos + reutilizados).
@@ -212,10 +230,12 @@ cd related_documents
 ### 7.4 Validación post-provisioning (Documentos relacionados)
 
 #### Term Store
+
 - Existe Term Set `GD - Lineas de Proceso` en `GestorDocumentalGD` (Closed)
 - Existen los términos semilla (Fileteado, Corte, Cocción, etc.)
 
 #### Site Columns nuevas
+
 - `GD_Nomenclatura` — Texto
 - `GD_NombreDocumentoHomologado` — Texto
 - `GD_VisualizacionDocumento` — URL
@@ -224,9 +244,11 @@ cd related_documents
 - `GD_LineaProceso` — Taxonomía, multi-valor
 
 #### Content Type
+
 - Existe `GD – Relacionado` en el sitio
 - Hereda de `Document`
 - Están enlazados los 18 campos definidos
 
 #### Biblioteca (si se ejecutó paso opcional)
+
 - CT `GD – Relacionado` visible en la biblioteca destino

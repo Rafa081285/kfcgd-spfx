@@ -9,6 +9,7 @@ import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
 import { spfi, SPFx } from '@pnp/sp';
 import '@pnp/sp/webs';
 import '@pnp/sp/files';
+import '@pnp/sp/lists';
 
 import * as strings from 'GdNavigationWebPartStrings';
 import GdNavigation from './components/GdNavigation';
@@ -18,6 +19,9 @@ export interface IGdNavigationWebPartProps {
   navJsonUrl: string;
   resultsPageUrl: string;
   nodeIdParam: string;
+  libraryTitle: string;
+  relatedLibraryTitle: string;
+  pageSize: string;
 }
 
 export default class GdNavigationWebPart extends BaseClientSideWebPart<IGdNavigationWebPartProps> {
@@ -26,9 +30,12 @@ export default class GdNavigationWebPart extends BaseClientSideWebPart<IGdNaviga
 
     const element: React.ReactElement<IGdNavigationProps> = React.createElement(GdNavigation, {
       sp,
-      navJsonUrl: this.properties.navJsonUrl || '/sites/KFCGD/SiteAssets/nav.json',
-      resultsPageUrl: this.properties.resultsPageUrl || '/sites/KFCGD/SitePages/resultados.aspx',
+      navJsonUrl: this.properties.navJsonUrl || '/SiteAssets/nav.json',
+      resultsPageUrl: this.properties.resultsPageUrl || '/SitePages/resultados.aspx',
       nodeIdParam: this.properties.nodeIdParam || 'nodeId',
+      libraryTitle: this.properties.libraryTitle || 'Gestor Documental',
+      relatedLibraryTitle: this.properties.relatedLibraryTitle || 'Documentos Relacionados GD',
+      pageSize: this.properties.pageSize || '10',
       isDarkTheme: false,
       hasTeamsContext: !!this.context.sdks.microsoftTeams
     });
@@ -61,6 +68,15 @@ export default class GdNavigationWebPart extends BaseClientSideWebPart<IGdNaviga
                 }),
                 PropertyPaneTextField('nodeIdParam', {
                   label: strings.NodeIdParamFieldLabel
+                }),
+                PropertyPaneTextField('libraryTitle', {
+                  label: strings.LibraryTitleFieldLabel
+                }),
+                PropertyPaneTextField('relatedLibraryTitle', {
+                  label: strings.RelatedLibraryTitleFieldLabel
+                }),
+                PropertyPaneTextField('pageSize', {
+                  label: strings.PageSizeFieldLabel
                 })
               ]
             }

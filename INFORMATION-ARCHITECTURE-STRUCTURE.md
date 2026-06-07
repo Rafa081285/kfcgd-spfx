@@ -7,7 +7,7 @@ Este documento describe la **estructura esperada** (Term Store, metadatos, Conte
 ## 1) Sitio destino
 
 - SharePoint Online Site:
-  - Default: `/sites/KFCGD`
+  - Default: `/`
 - No se usa Content Type Hub (los CTs se crean en el sitio).
 
 ---
@@ -15,9 +15,11 @@ Este documento describe la **estructura esperada** (Term Store, metadatos, Conte
 ## 2) Term Store (Taxonomía)
 
 ### 2.1 Term Group
+
 - **Nombre**: `GestorDocumentalGD`
 
-### 2.2 Term Sets (todos *Closed*)
+### 2.2 Term Sets (todos _Closed_)
+
 > Los nombres deben coincidir exactamente para que los campos MM se enlacen correctamente.
 
 1. `GD - Categoria`
@@ -79,12 +81,14 @@ Este documento describe la **estructura esperada** (Term Store, metadatos, Conte
 > Grupo sugerido: `GD Columns`.
 
 ### 3.1 Text (Texto)
+
 - `GD_Codigo`
 - `GD_NombreProcedimiento`
-- `GD_ProductoLabels` *(texto auxiliar: etiquetas o búsqueda)*
+- `GD_ProductoLabels` _(texto auxiliar: etiquetas o búsqueda)_
 - `GD_Version`
 
 ### 3.2 Choice (Selección)
+
 - `GD_Aplicabilidad`:
   - `General`
   - `Por producto`
@@ -113,6 +117,7 @@ Este documento describe la **estructura esperada** (Term Store, metadatos, Conte
   - `Bajo`
 
 ### 3.3 Date (solo fecha)
+
 > En SharePoint: Field Type = `DateTime`, con `Format=DateOnly`.
 
 - `GD_FechaDivulgacion`
@@ -123,6 +128,7 @@ Este documento describe la **estructura esperada** (Term Store, metadatos, Conte
 - `GD_FechaVencimientoYUM`
 
 ### 3.4 People (Personas)
+
 - Single:
   - `GD_AprobadoPorYUM`
   - `GD_ResponsablePrincipal`
@@ -138,6 +144,7 @@ Este documento describe la **estructura esperada** (Term Store, metadatos, Conte
 > Deben crearse y enlazarse a term sets dentro del Term Group `GestorDocumentalGD`.
 
 ### 4.1 Single-value (por defecto)
+
 - `GD_Categoria` → TermSet `GD - Categoria`
 - `GD_Alcance` → TermSet `GD - Alcance`
 - `GD_Confidencialidad` → TermSet `GD - Confidencialidad`
@@ -146,6 +153,7 @@ Este documento describe la **estructura esperada** (Term Store, metadatos, Conte
 - `GD_AmbitoPrograma` → TermSet `GD - Ambito - Programa`
 
 ### 4.2 Multi-value (confirmados)
+
 - `GD_PlantasAplicables` → TermSet `GD - Plantas y Centros` (**Multi**)
 - `GD_HomologacionPlanta` → TermSet `GD - Plantas y Centros` (**Multi**)
 - `GD_Producto` → TermSet `GD - Producto - Familia - SKU` (**Multi**)
@@ -155,14 +163,18 @@ Este documento describe la **estructura esperada** (Term Store, metadatos, Conte
 ## 5) Content Types (a nivel de sitio)
 
 ### 5.1 Content Types requeridos
+
 - `GD – PO`
 - `GD – IT`
 
 ### 5.2 Herencia
+
 - Ambos heredan de: **Document**
 
 ### 5.3 Field Links
+
 Deben incluir:
+
 - Todos los campos base (Sección 3)
 - Todos los campos de taxonomía (Sección 4)
 
@@ -173,11 +185,13 @@ Deben incluir:
 ## 6) Biblioteca de documentos
 
 ### 6.1 Biblioteca objetivo
+
 - Default: `Gestor Documental`
 - Alternativo: `Documentos GD Generales`
 - Debe ser parametrizable (`-LibraryTitle`)
 
 ### 6.2 Configuración esperada
+
 - Content types habilitados
 - Content types agregados a la biblioteca:
   - `GD – PO`
@@ -195,14 +209,14 @@ Deben incluir:
 
 > Creadas por `provisioning/related_documents/01-rd-sitecolumns.ps1` y `02-rd-taxonomyfield.ps1`.
 
-| Columna (visible) | InternalName | Tipo | Multi | Observaciones |
-|---|---|---|---|---|
-| Nomenclatura | `GD_Nomenclatura` | Texto | No | Sigla/nomenclatura del documento |
-| Nombre de documento homologado | `GD_NombreDocumentoHomologado` | Texto | No | Nombre del doc. homologado de referencia |
-| Visualización documento | `GD_VisualizacionDocumento` | URL (Hyperlink) | No | Enlace directo al archivo |
-| Documento general relacionado | `GD_DocumentoGeneral` | URL (Hyperlink) | No | Enlace al PO/IT padre |
-| Fecha de emisión | `GD_FechaEmision` | Fecha (DateOnly) | No | Fecha de emisión del documento |
-| Línea de proceso | `GD_LineaProceso` | Taxonomía (MM) | **Sí** | TermSet: `GD - Lineas de Proceso` |
+| Columna (visible)              | InternalName                   | Tipo             | Multi  | Observaciones                            |
+| ------------------------------ | ------------------------------ | ---------------- | ------ | ---------------------------------------- |
+| Nomenclatura                   | `GD_Nomenclatura`              | Texto            | No     | Sigla/nomenclatura del documento         |
+| Nombre de documento homologado | `GD_NombreDocumentoHomologado` | Texto            | No     | Nombre del doc. homologado de referencia |
+| Visualización documento        | `GD_VisualizacionDocumento`    | URL (Hyperlink)  | No     | Enlace directo al archivo                |
+| Documento general relacionado  | `GD_DocumentoGeneral`          | URL (Hyperlink)  | No     | Enlace al PO/IT padre                    |
+| Fecha de emisión               | `GD_FechaEmision`              | Fecha (DateOnly) | No     | Fecha de emisión del documento           |
+| Línea de proceso               | `GD_LineaProceso`              | Taxonomía (MM)   | **Sí** | TermSet: `GD - Lineas de Proceso`        |
 
 ### 8.2 Columnas reutilizadas de Documentos generales
 
@@ -222,11 +236,11 @@ Términos semilla: Fileteado, Corte, Cocción, Marinado, Empaque, Congelación, 
 
 ### 8.4 Content Type
 
-| Propiedad | Valor |
-|---|---|
-| Nombre | `GD – Relacionado` |
-| Grupo | `GD Content Types` |
-| Hereda de | `Document` |
+| Propiedad  | Valor                                         |
+| ---------- | --------------------------------------------- |
+| Nombre     | `GD – Relacionado`                            |
+| Grupo      | `GD Content Types`                            |
+| Hereda de  | `Document`                                    |
 | Biblioteca | `Gestor Documental` (default, parametrizable) |
 
 ---

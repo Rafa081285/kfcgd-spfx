@@ -14,13 +14,19 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$TenantUrl,
 
-  [string]$SiteRelativeUrl = '/sites/KFCGD',
+  [string]$SiteRelativeUrl = '/',
 
-  [string]$TermGroupName = 'GestorDocumentalGD'
+  [string]$TermGroupName = 'GestorDocumentalGD',
+
+  [string]$ClientId,
+  [string]$Tenant
 )
 
 $siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
-Connect-PnPOnline -Url $siteUrl -Interactive
+$connectParams = @{ Url = $siteUrl; Interactive = $true }
+if ($ClientId) { $connectParams['ClientId'] = $ClientId }
+if ($Tenant)   { $connectParams['Tenant']   = $Tenant }
+#Connect-PnPOnline @connectParams
 
 $group = 'GD Columns'
 

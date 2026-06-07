@@ -4,6 +4,9 @@ declare interface IGdNavigationWebPartStrings {
   NavJsonUrlFieldLabel: string;
   ResultsPageUrlFieldLabel: string;
   NodeIdParamFieldLabel: string;
+  LibraryTitleFieldLabel: string;
+  RelatedLibraryTitleFieldLabel: string;
+  PageSizeFieldLabel: string;
 }
 
 declare module 'GdNavigationWebPartStrings' {

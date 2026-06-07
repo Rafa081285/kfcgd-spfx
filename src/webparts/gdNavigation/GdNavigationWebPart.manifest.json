@@ -16,9 +16,12 @@
       "description": { "default": "Gestor Documental Navigation" },
       "officeFabricIconFontName": "Product",
       "properties": {
-        "navJsonUrl": "/sites/KFCGD/SiteAssets/nav.json",
-        "resultsPageUrl": "/sites/KFCGD/SitePages/resultados.aspx",
-        "nodeIdParam": "nodeId"
+        "navJsonUrl": "/SiteAssets/nav.json",
+        "resultsPageUrl": "/SitePages/resultados.aspx",
+        "nodeIdParam": "nodeId",
+        "libraryTitle": "Gestor Documental",
+        "relatedLibraryTitle": "Documentos Relacionados GD",
+        "pageSize": "10"
       }
     }
   ]

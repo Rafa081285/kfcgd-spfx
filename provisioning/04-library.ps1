@@ -13,13 +13,19 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$TenantUrl,
 
-  [string]$SiteRelativeUrl = '/sites/KFCGD',
+  [string]$SiteRelativeUrl = '/sites/ecu-devgestioncalidadplt',
 
-  [string]$LibraryTitle = 'Gestor Documental'
+  [string]$LibraryTitle = 'Gestor Documental',
+
+  [string]$ClientId,
+  [string]$Tenant
 )
 
 $siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
-Connect-PnPOnline -Url $siteUrl -Interactive
+$connectParams = @{ Url = $siteUrl; Interactive = $true }
+if ($ClientId) { $connectParams['ClientId'] = $ClientId }
+if ($Tenant)   { $connectParams['Tenant']   = $Tenant }
+#Connect-PnPOnline @connectParams
 
 # Ensure library
 $list = Get-PnPList -Identity $LibraryTitle -ErrorAction SilentlyContinue
@@ -31,7 +37,7 @@ if (-not $list) {
 }
 
 # Enable Content Types on the library
-Set-PnPList -Identity $LibraryTitle -ContentTypesEnabled:$true | Out-Null
+Set-PnPList -Identity $LibraryTitle -EnableContentTypes $true | Out-Null
 
 # Ensure CTs exist at site level (created by 03)
 $ctNames = @('GD – PO', 'GD – IT')

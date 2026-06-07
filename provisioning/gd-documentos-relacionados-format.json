@@ -1,0 +1,25 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/sp/v2/column-formatting.schema.json",
+  "elmType": "div",
+  "style": {
+    "display": "flex",
+    "flex-direction": "column",
+    "gap": "4px"
+  },
+  "children": [
+    {
+      "forEach": "item in @currentField",
+      "elmType": "a",
+      "attributes": {
+        "href": "='/Documentos Relacionados GD/Forms/DispForm.aspx?ID=' + toString([$item.lookupId])",
+        "target": "_blank",
+        "title": "=[$item.lookupValue]"
+      },
+      "style": {
+        "text-decoration": "none",
+        "color": "#0078d4"
+      },
+      "txtContent": "=[$item.lookupValue]"
+    }
+  ]
+}

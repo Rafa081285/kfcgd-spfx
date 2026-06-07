@@ -5,6 +5,9 @@ export interface IGdNavigationProps {
   navJsonUrl: string;
   resultsPageUrl: string;
   nodeIdParam: string;
+  libraryTitle: string;
+  relatedLibraryTitle: string;
+  pageSize: string;
   isDarkTheme: boolean;
   hasTeamsContext: boolean;
 }

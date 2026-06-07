@@ -15,13 +15,19 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$TenantUrl,
 
-  [string]$SiteRelativeUrl = '/sites/KFCGD',
+  [string]$SiteRelativeUrl = '/sites/ecu-devgestioncalidadplt',
 
-  [string]$TermGroupName = 'GestorDocumentalGD'
+  [string]$TermGroupName = 'GestorDocumentalGD',
+
+  [string]$ClientId,
+  [string]$Tenant
 )
 
 $siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
-Connect-PnPOnline -Url $siteUrl -Interactive
+$connectParams = @{ Url = $siteUrl; Interactive = $true }
+if ($ClientId) { $connectParams['ClientId'] = $ClientId }
+if ($Tenant)   { $connectParams['Tenant']   = $Tenant }
+#Connect-PnPOnline @connectParams
 
 $group        = 'GD Columns'
 $termSetName  = 'GD - Lineas de Proceso'
@@ -39,7 +45,9 @@ if (-not $termGroup) {
 Write-Host "Ensuring Term Set:   $termSetName"
 $termSet = Get-PnPTermSet -Identity $termSetName -TermGroup $TermGroupName -ErrorAction SilentlyContinue
 if (-not $termSet) {
-  $termSet = New-PnPTermSet -Name $termSetName -TermGroup $TermGroupName -IsOpen $false
+  New-PnPTermSet -Name $termSetName -TermGroup $TermGroupName | Out-Null
+  # Re-fetch: New-PnPTermSet no devuelve el objeto de forma fiable en todas las versiones
+  $termSet = Get-PnPTermSet -Identity $termSetName -TermGroup $TermGroupName
   Write-Host "Created Term Set: $termSetName"
 
   # Términos semilla (líneas de proceso típicas en planta KFC)
@@ -58,9 +66,9 @@ if (-not $termSet) {
   )
 
   foreach ($term in $seedTerms) {
-    $existing = Get-PnPTerm -Identity $term -TermSet $termSet -ErrorAction SilentlyContinue
+    $existing = Get-PnPTerm -Identity $term -TermSet $termSetName -TermGroup $TermGroupName -ErrorAction SilentlyContinue
     if (-not $existing) {
-      New-PnPTerm -Name $term -TermSet $termSet | Out-Null
+      New-PnPTerm -Name $term -TermSet $termSetName -TermGroup $TermGroupName -ErrorAction SilentlyContinue | Out-Null
       Write-Host "  Created term: $term"
     } else {
       Write-Host "  Term exists:  $term"
@@ -81,7 +89,7 @@ if (Get-PnPField -Identity 'GD_LineaProceso' -ErrorAction SilentlyContinue) {
     -DisplayName  'Líneas de proceso' `
     -InternalName 'GD_LineaProceso' `
     -Group        $group `
-    -TermSetPath  "$TermGroupName|$termSetName" `
+    -TaxonomyItemId $termSet.Id `
     -MultiValue:$true `
     -AddToDefaultView:$false | Out-Null
 

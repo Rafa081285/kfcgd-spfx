@@ -1,26 +1,33 @@
 param(
   [Parameter(Mandatory=$true)][string]$TenantUrl,
-  [string]$SiteRelativeUrl = '/sites/KFCGD'
+  [string]$SiteRelativeUrl = '/sites/ecu-devgestioncalidadplt',
+  [string]$ClientId,
+  [string]$Tenant
 )
 
 $siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
-Connect-PnPOnline -Url $siteUrl -Interactive
+$connectParams = @{ Url = $siteUrl; Interactive = $true }
+if ($ClientId) { $connectParams['ClientId'] = $ClientId }
+if ($Tenant)   { $connectParams['Tenant']   = $Tenant }
+#Connect-PnPOnline @connectParams
 
 $ctGroup = 'GD Content Types'
 
 function Ensure-ContentType {
   param(
     [Parameter(Mandatory=$true)][string]$Name,
-    [Parameter(Mandatory=$true)][string]$ParentContentTypeName = 'Document'
+    [string]$ParentContentTypeName = 'Document'
   )
 
   $existing = Get-PnPContentType -Identity $Name -ErrorAction SilentlyContinue
   if ($existing) { return $existing }
 
-  $parent = Get-PnPContentType -Identity $ParentContentTypeName
+  # Buscar primero por nombre; si no aparece, usar el ID estándar de Document (0x0101)
+  $parent = Get-PnPContentType -Identity $ParentContentTypeName -ErrorAction SilentlyContinue
+  if (-not $parent) { $parent = Get-PnPContentType -Identity '0x0101' -ErrorAction SilentlyContinue }
   if (-not $parent) { throw "Parent content type '$ParentContentTypeName' not found." }
 
-  return New-PnPContentType -Name $Name -ParentContentType $parent -Group $ctGroup -Description "Gestor Documental - $Name"
+  return Add-PnPContentType -Name $Name -ParentContentType $parent -Group $ctGroup -Description "Gestor Documental - $Name"
 }
 
 $ctPO = Ensure-ContentType -Name 'GD – PO'
@@ -57,7 +64,9 @@ $fieldInternalNames = @(
   'GD_Producto',
   'GD_DepartamentoResponsable',
   'GD_CargoLiderPO',
-  'GD_AmbitoPrograma'
+  'GD_AmbitoPrograma',
+
+  'GD_DocumentosRelacionados'   # referencia inversa a biblioteca Documentos Relacionados GD
 )
 
 foreach ($fname in $fieldInternalNames) {
