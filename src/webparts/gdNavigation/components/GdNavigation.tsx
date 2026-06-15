@@ -339,7 +339,11 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
       const message = e && (e as { message?: string }).message
         ? (e as { message: string }).message
         : 'Error loading documents for selected node';
-      this.setState({ items: [], loadingItems: false, itemsError: message });
+      this.setState({
+        items: [],
+        loadingItems: false,
+        itemsError: message
+      });
     }
   }
 
