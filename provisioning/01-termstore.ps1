@@ -1,6 +1,6 @@
 param(
     [string]$TenantUrl,
-    [string]$SiteRelativeUrl = '/sites/ecu-devgestioncalidadplt',
+    [string]$SiteRelativeUrl = '/',
     [string]$TermGroupName = 'GestorDocumentalGD',
     [string]$ClientId,
     [string]$Tenant
@@ -18,13 +18,15 @@ function Ensure-TermSet {
     if (-not $termSet) {
         if ($IsOpen) {
             $termSet = New-PnPTermSet -Name $TermSetName -TermGroup $GroupName -IsOpen
-        } else {
+        }
+        else {
             $termSet = New-PnPTermSet -Name $TermSetName -TermGroup $GroupName
         }
         foreach ($term in $Terms) {
             Ensure-Term $termSet $GroupName $term
         }
-    } else {
+    }
+    else {
         Write-Host "TermSet $TermSetName already exists."
     }
 }
@@ -39,7 +41,8 @@ function Ensure-Term {
     $existingTerm = Get-PnPTerm -Identity $Term -TermSet $TermSet -TermGroup $GroupName -ErrorAction SilentlyContinue
     if (-not $existingTerm) {
         New-PnPTerm -Name $Term -TermSet $TermSet -TermGroup $GroupName
-    } else {
+    }
+    else {
         Write-Host "Term $Term already exists."
     }
 }
@@ -50,7 +53,7 @@ $connectParams = @{
     Interactive = $true
 }
 if ($ClientId) { $connectParams['ClientId'] = $ClientId }
-if ($Tenant)   { $connectParams['Tenant']   = $Tenant }
+if ($Tenant) { $connectParams['Tenant'] = $Tenant }
 #Connect-PnPOnline @connectParams
 
 # Ensure Term Store Group

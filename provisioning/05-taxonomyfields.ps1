@@ -14,7 +14,7 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$TenantUrl,
 
-  [string]$SiteRelativeUrl = '/',
+  [string]$SiteRelativeUrl = '/sites/ecu-devgestioncalidadplt',
 
   [string]$TermGroupName = 'GestorDocumentalGD',
 
@@ -25,15 +25,15 @@ param(
 $siteUrl = $TenantUrl.TrimEnd('/') + $SiteRelativeUrl
 $connectParams = @{ Url = $siteUrl; Interactive = $true }
 if ($ClientId) { $connectParams['ClientId'] = $ClientId }
-if ($Tenant)   { $connectParams['Tenant']   = $Tenant }
-#Connect-PnPOnline @connectParams
+if ($Tenant) { $connectParams['Tenant'] = $Tenant }
+Connect-PnPOnline @connectParams
 
 $group = 'GD Columns'
 
 function Get-TermSetByName {
   param(
-    [Parameter(Mandatory=$true)][string]$TermGroupName,
-    [Parameter(Mandatory=$true)][string]$TermSetName
+    [Parameter(Mandatory = $true)][string]$TermGroupName,
+    [Parameter(Mandatory = $true)][string]$TermSetName
   )
 
   # En PnP.PowerShell, esta forma es la más consistente cuando ya conoces el nombre del term set y el grupo
@@ -46,9 +46,9 @@ function Get-TermSetByName {
 
 function Ensure-TaxonomyField {
   param(
-    [Parameter(Mandatory=$true)][string]$InternalName,
-    [Parameter(Mandatory=$true)][string]$DisplayName,
-    [Parameter(Mandatory=$true)][string]$TermSetName,
+    [Parameter(Mandatory = $true)][string]$InternalName,
+    [Parameter(Mandatory = $true)][string]$DisplayName,
+    [Parameter(Mandatory = $true)][string]$TermSetName,
     [switch]$Multi
   )
 
