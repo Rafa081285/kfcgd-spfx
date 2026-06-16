@@ -217,6 +217,7 @@ function buildNavLinks(nodes: INavNode[]): INavLink[] {
 }
 
 export default class GdNavigation extends React.Component<IGdNavigationProps, IGdNavigationState> {
+  private readonly _officeExtensions: string[] = ['doc', 'docx', 'ppt', 'pptx', 'pps', 'ppsx', 'xls', 'xlsx', 'xlsm', 'docm', 'pptm'];
   private _suppressNextActiveItemChange = false;
 
   constructor(props: IGdNavigationProps) {
@@ -492,11 +493,26 @@ export default class GdNavigation extends React.Component<IGdNavigationProps, IG
       return '';
     }
 
-    if (fileRef.indexOf('http://') === 0 || fileRef.indexOf('https://') === 0) {
-      return fileRef;
+    const absoluteUrl = (fileRef.indexOf('http://') === 0 || fileRef.indexOf('https://') === 0)
+      ? fileRef
+      : `${window.location.origin}${fileRef}`;
+
+    return this._toWebViewerUrlIfOffice(absoluteUrl);
+  }
+
+  private _toWebViewerUrlIfOffice(url: string): string {
+    const pathWithoutQuery = url.split('?')[0];
+    const extension = (pathWithoutQuery.split('.').pop() || '').toLowerCase();
+
+    if (this._officeExtensions.indexOf(extension) === -1) {
+      return url;
     }
 
-    return `${window.location.origin}${fileRef}`;
+    if (/[?&]web=1(?:&|$)/i.test(url)) {
+      return url;
+    }
+
+    return `${url}${url.indexOf('?') >= 0 ? '&' : '?'}web=1`;
   }
 
   private _openDocumentModal(title: string, url: string, source: 'main' | 'related'): void {

@@ -25,6 +25,8 @@ export interface IGdResultsState {
 }
 
 export default class GdResults extends React.Component<IGdResultsProps, IGdResultsState> {
+  private readonly _officeExtensions: string[] = ['doc', 'docx', 'ppt', 'pptx', 'pps', 'ppsx', 'xls', 'xlsx', 'xlsm', 'docm', 'pptm'];
+
   constructor(props: IGdResultsProps) {
     super(props);
     this.state = {
@@ -85,6 +87,33 @@ export default class GdResults extends React.Component<IGdResultsProps, IGdResul
     this.setState({ navConfig: config, items: rows, loading: false, error: null });
   }
 
+  private _resolveDocumentUrl(fileRef: string): string {
+    if (!fileRef) {
+      return '';
+    }
+
+    const absoluteUrl = (fileRef.indexOf('http://') === 0 || fileRef.indexOf('https://') === 0)
+      ? fileRef
+      : `${window.location.origin}${fileRef}`;
+
+    return this._toWebViewerUrlIfOffice(absoluteUrl);
+  }
+
+  private _toWebViewerUrlIfOffice(url: string): string {
+    const pathWithoutQuery = url.split('?')[0];
+    const extension = (pathWithoutQuery.split('.').pop() || '').toLowerCase();
+
+    if (this._officeExtensions.indexOf(extension) === -1) {
+      return url;
+    }
+
+    if (/[?&]web=1(?:&|$)/i.test(url)) {
+      return url;
+    }
+
+    return `${url}${url.indexOf('?') >= 0 ? '&' : '?'}web=1`;
+  }
+
   private _getColumns(): IColumn[] {
     return [
       {
@@ -103,7 +132,7 @@ export default class GdResults extends React.Component<IGdResultsProps, IGdResul
         maxWidth: 400,
         isResizable: true,
         onRender: (item: { FileLeafRef: string; FileRef: string }) => (
-          <Link href={item.FileRef} target="_blank">
+          <Link href={this._resolveDocumentUrl(item.FileRef)} target="_blank">
             {item.FileLeafRef}
           </Link>
         )
