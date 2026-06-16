@@ -1,4 +1,5 @@
 import { SPFI } from '@pnp/sp';
+import '@pnp/sp/fields';
 import { INavConfig, INavNode } from './INavNode';
 
 interface ITaxonomyHiddenItem {
@@ -8,8 +9,12 @@ interface ITaxonomyHiddenItem {
   Path?: string;
 }
 
+interface IFieldInfo {
+  SchemaXml?: string;
+}
+
 const CATEGORY_TERM_SET_NAME = 'GD - Categoria';
-const CATEGORY_TERM_SET_ID = '6a7c2e6b-ad9f-4016-a819-65eac475cf56';
+const CATEGORY_TERM_SET_ID_FALLBACK = '6a7c2e6b-ad9f-4016-a819-65eac475cf56';
 const ROOT_NODE_ID = 'po';
 const ROOT_NODE_LABEL = 'PO Generales';
 const PO_CONTENT_TYPE = 'GD – PO';
@@ -33,6 +38,60 @@ function sanitizeNodeId(value: string): string {
     .replace(/ñ/g, 'n')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function resolveNavConfigPath(navJsonUrl: string, webServerRelativeUrl: string): string {
+  if (!navJsonUrl || navJsonUrl.trim().length === 0) {
+    return `${webServerRelativeUrl.replace(/\/$/, '')}/SiteAssets/nav.json`;
+  }
+
+  const trimmed = navJsonUrl.trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    // Absolute URL cannot be used with getFileByServerRelativePath; fallback to default site asset path.
+    return `${webServerRelativeUrl.replace(/\/$/, '')}/SiteAssets/nav.json`;
+  }
+
+  if (trimmed.indexOf('/') === 0) {
+    const webRoot = webServerRelativeUrl.replace(/\/$/, '');
+    const webRootWithSlash = `${webRoot.toLowerCase()}/`;
+    if (trimmed.toLowerCase().indexOf(webRootWithSlash) === 0) {
+      return trimmed;
+    }
+
+    return `${webRoot}${trimmed}`;
+  }
+
+  return `${webServerRelativeUrl.replace(/\/$/, '')}/${trimmed}`;
+}
+
+function extractTermSetIdFromSchemaXml(schemaXml: string | undefined): string | null {
+  if (!schemaXml) {
+    return null;
+  }
+
+  const match = schemaXml.match(/TermSetId="\{?([0-9a-fA-F-]{36})\}?"/i);
+  if (!match || !match[1]) {
+    return null;
+  }
+
+  return match[1].toLowerCase();
+}
+
+async function resolveCategoryTermSetId(sp: SPFI): Promise<string> {
+  try {
+    const field = await sp.web.fields
+      .getByInternalNameOrTitle('GD_Categoria')
+      .select('SchemaXml')<IFieldInfo>();
+
+    const extracted = extractTermSetIdFromSchemaXml(field.SchemaXml);
+    if (extracted) {
+      return extracted;
+    }
+  } catch (fieldError) {
+    // fallback below
+  }
+
+  return CATEGORY_TERM_SET_ID_FALLBACK;
 }
 
 function ensureChildNode(parentNode: INavNode, pathParts: string[], termId: string): void {
@@ -76,13 +135,15 @@ async function loadTaxonomyNavigation(sp: SPFI): Promise<INavConfig> {
   const webInfo = await sp.web
     .select('ServerRelativeUrl')<{ ServerRelativeUrl?: string }>();
 
+  const categoryTermSetId = await resolveCategoryTermSetId(sp);
+
   const hiddenItems = await sp.web.lists
     .getByTitle('TaxonomyHiddenList')
     .items
     .select('Title', 'IdForTerm', 'IdForTermSet', 'Path')<ITaxonomyHiddenItem[]>();
 
   const categoryItems = hiddenItems.filter(item => {
-    return !!item.Title && !!item.IdForTermSet && item.IdForTermSet.toLowerCase() === CATEGORY_TERM_SET_ID;
+    return !!item.Title && !!item.IdForTermSet && item.IdForTermSet.toLowerCase() === categoryTermSetId;
   });
 
   const rootNode: INavNode = {
@@ -105,6 +166,12 @@ async function loadTaxonomyNavigation(sp: SPFI): Promise<INavConfig> {
       }
     });
 
+  // In some tenants, TaxonomyHiddenList only materializes terms after usage.
+  // Force fallback to nav.json when no taxonomy terms are available yet.
+  if (!rootNode.children || rootNode.children.length === 0) {
+    throw new Error(`No terms found in TaxonomyHiddenList for term set '${CATEGORY_TERM_SET_NAME}'`);
+  }
+
   return {
     schemaVersion: `taxonomy:${CATEGORY_TERM_SET_NAME}`,
     site: { serverRelativeUrl: webInfo.ServerRelativeUrl || '/' },
@@ -117,7 +184,9 @@ export async function loadNavConfig(sp: SPFI, navJsonUrl: string): Promise<INavC
   try {
     return await loadTaxonomyNavigation(sp);
   } catch (taxonomyError) {
-    const text = await sp.web.getFileByServerRelativePath(navJsonUrl).getText();
+    const webInfo = await sp.web.select('ServerRelativeUrl')<{ ServerRelativeUrl?: string }>();
+    const resolvedNavPath = resolveNavConfigPath(navJsonUrl, webInfo.ServerRelativeUrl || '/');
+    const text = await sp.web.getFileByServerRelativePath(resolvedNavPath).getText();
     return JSON.parse(text) as INavConfig;
   }
 }

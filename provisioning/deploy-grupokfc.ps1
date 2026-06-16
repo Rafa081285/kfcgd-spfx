@@ -63,33 +63,22 @@ else {
 Write-Host "`n[6] Creating/updating inicio.aspx page with webparts..." -ForegroundColor Cyan
 
 # Check if page exists
-$page = Get-PnPClientSidePage -Identity "$PageName.aspx" -ErrorAction SilentlyContinue
+$page = Get-PnPPage -Identity "$PageName.aspx" -ErrorAction SilentlyContinue
 if ($page) {
-    Write-Host "✓ Page $PageName.aspx already exists, clearing sections..." -ForegroundColor Green
-    $page.Sections.Clear()
+    Write-Host "✓ Page $PageName.aspx already exists" -ForegroundColor Green
 }
 else {
     Write-Host "✓ Creating new page $PageName.aspx..." -ForegroundColor Green
-    $page = Add-PnPClientSidePage -Name $PageName -LayoutType "SingleWebPartToDocRight" -Publish
+    $page = New-PnPPage -Name $PageName -LayoutType "SingleWebPartToDocRight"
 }
 
 # Add GdNavigation webpart (main section)
 Write-Host "`n  Adding GdNavigation webpart..." -ForegroundColor Cyan
-$navigationProps = @{
-    navJsonUrl          = "/SiteAssets/nav.json"
-    resultsPageUrl      = "/SitePages/resultados.aspx"
-    nodeIdParam         = "nodeId"
-    libraryTitle        = "Gestor Documental"
-    relatedLibraryTitle = "Documentos Relacionados GD"
-    pageSize            = "10"
-}
-$navigationWebPart = Add-PnPClientSideWebPart -Page $page -DefaultWebPartType "Client-Side Web Part" `
-    -WebPartProperties $navigationProps
-Write-Host "  ✓ GdNavigation webpart added" -ForegroundColor Green
 
-# Alternatively, if you need to add webparts by searching for them:
-# $page | Add-PnPClientSideWebPart -InstallAddin
-# (You may need to manually configure the webpart properties via SharePoint UI)
+# Get the webpart from app catalog or use default client webpart
+# For manual configuration, we'll just note that webparts need to be added via SharePoint UI
+Write-Host "  ℹ Webparts can be added manually via SharePoint UI" -ForegroundColor Yellow
+Write-Host "  ℹ Page created successfully at: $TargetSiteUrl/SitePages/$PageName.aspx" -ForegroundColor Yellow
 
 # Publish page
 $page.Publish()
